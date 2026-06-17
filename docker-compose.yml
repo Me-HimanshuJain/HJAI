@@ -1,0 +1,110 @@
+
+services:
+  # -------------------------
+  # Frontend Service (Next.js)
+  # -------------------------
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # -------------------------
+  # Backend Service (FastAPI)
+  # -------------------------
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/hjai
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - JWT_SECRET=change_this_to_a_secure_secret_in_production
+      - ENVIRONMENT=development
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+      - chromadb
+    restart: unless-stopped
+
+  # -------------------------
+  # Celery Worker Service
+  # -------------------------
+  celery_worker:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A worker.celery_app worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/hjai
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - OLLAMA_HOST=http://host.docker.internal:11434
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+      - chromadb
+    restart: unless-stopped
+
+  # -------------------------
+  # Relational Database (PostgreSQL)
+  # -------------------------
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=hjai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # -------------------------
+  # Cache & Task Queue (Redis)
+  # -------------------------
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # -------------------------
+  # Vector Database (ChromaDB)
+  # -------------------------
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  chromadb_data:
