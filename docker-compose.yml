@@ -45,13 +45,14 @@ services:
     restart: unless-stopped
 
   # -------------------------
-  # Celery Worker Service
+  # Celery Worker Service (With Xvfb and PulseAudio for the Bot)
   # -------------------------
   celery_worker:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    command: celery -A worker.celery_app worker --loglevel=info
+    command: >
+      bash -c "pulseaudio -D --exit-idle-time=-1 && xvfb-run -a celery -A bot.scheduler.celery_app worker --loglevel=info"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/hjai
       - REDIS_URL=redis://redis:6379/0
@@ -65,6 +66,23 @@ services:
       - postgres
       - redis
       - chromadb
+    restart: unless-stopped
+
+  # -------------------------
+  # Celery Beat Service (Scheduler)
+  # -------------------------
+  celery_beat:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A bot.scheduler.celery_app beat --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_HOST=redis
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
     restart: unless-stopped
 
   # -------------------------

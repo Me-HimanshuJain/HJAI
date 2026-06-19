@@ -1,0 +1,12 @@
+{
+  "pythonVersion": "3.11",
+  "pythonPlatform": "Windows",
+  "pythonPath": "C:/Users/himan/AppData/Local/Programs/Python/Python311/python.exe",
+  "venvPath": "C:/Users/himan/AppData/Local/Programs/Python/Python311",
+  "extraPaths": [
+    "C:/Users/himan/AppData/Local/Programs/Python/Python311/Lib/site-packages"
+  ],
+  "typeCheckingMode": "basic",
+  "reportMissingModuleSource": "none",
+  "reportMissingImports": "none"
+}
