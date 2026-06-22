@@ -1,3 +1,4 @@
+import json
 import requests
 import threading
 import queue
@@ -7,11 +8,12 @@ import time
 class AIEngine:
     def __init__(self, ollama_url="http://localhost:11434"):
         self.ollama_url = ollama_url
-        self.model = "phi3:mini"   # Fast 3.8B model — ~5-15s response
+        self.model = "phi3:mini"
         self.answer_queue = queue.Queue()
         self.transcript_queue = queue.Queue()
         self.is_running = False
-        self.is_thinking = False   # True while Ollama is generating
+        self.is_thinking = False
+        self.partial_answer = ""   # updated token-by-token during streaming
 
     def start_worker(self, context_queue: queue.Queue):
         self.is_running = True
@@ -22,12 +24,12 @@ class AIEngine:
 
     def _worker(self, context_queue: queue.Queue):
         """
-        Immediate-response worker:
-        Each new transcription triggers an AI answer right away.
-        Latest utterance is passed separately so the AI always answers
-        what was JUST said, not a mix of old + new topics.
+        Immediate-response worker with streaming output.
+        Each transcription triggers an AI answer immediately.
+        partial_answer is updated token-by-token so the UI can show
+        text appearing as it streams, instead of waiting for the full response.
         """
-        recent = []   # rolling context — last 2 sentences only
+        recent = []   # rolling context — last 2 utterances only
 
         while self.is_running:
             try:
@@ -41,26 +43,31 @@ class AIEngine:
 
             self.transcript_queue.put(new_text)   # push to UI immediately
 
-            if len(new_text.strip()) < 15:
+            if len(new_text.strip()) < 12:
                 recent.append(new_text)
                 recent = recent[-2:]
                 continue   # too short to answer
 
-            context_history = " ".join(recent)    # previous lines as context
+            context_history = " ".join(recent)
             recent.append(new_text)
-            recent = recent[-2:]                  # keep only last 2
+            recent = recent[-2:]
 
             self.is_thinking = True
+            self.partial_answer = ""
             print(f"[AI] Answering: {new_text[:80]}...")
             answer = self._generate_answer(new_text, context_history)
             self.is_thinking = False
+            self.partial_answer = ""
 
             if answer:
                 print(f"[Answer] {answer}")
                 self.answer_queue.put(answer)
 
     def _generate_answer(self, latest_text: str, context_history: str = ""):
-        context_block = f'Previous context:\n"{context_history}"\n\n' if context_history.strip() else ""
+        context_block = (
+            f'Previous context:\n"{context_history}"\n\n'
+            if context_history.strip() else ""
+        )
         prompt = f"""You are HJAI — a silent AI copilot listening live to a meeting or interview.
 
 {context_block}Latest statement/question:
@@ -91,22 +98,41 @@ Answer:"""
                 json={
                     "model": self.model,
                     "prompt": prompt,
-                    "stream": False,
+                    "stream": True,   # streaming: tokens arrive one by one
                     "options": {"temperature": 0.1, "num_predict": 100},
                 },
+                stream=True,
                 timeout=45,
             )
             response.raise_for_status()
-            result = response.json().get("response", "").strip()
+
+            full_text = ""
+            for line in response.iter_lines():
+                if not self.is_running:
+                    break
+                if line:
+                    try:
+                        data = json.loads(line)
+                        token = data.get("response", "")
+                        full_text += token
+                        self.partial_answer = full_text   # UI reads this live
+                        if data.get("done", False):
+                            break
+                    except json.JSONDecodeError:
+                        pass
+
+            result = full_text.strip()
             if result and "(listening...)" not in result.lower():
                 return result
             return None
+
         except Exception as e:
             print(f"Ollama API Error: {e}")
             return None
 
     def reset(self):
-        """Clear both queues (called by Reset button)."""
+        """Clear all queues and context (called by Reset button)."""
+        self.partial_answer = ""
         for q in (self.answer_queue, self.transcript_queue):
             while not q.empty():
                 try:

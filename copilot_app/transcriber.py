@@ -41,11 +41,11 @@ class Transcriber:
     # RMS below this → silence. Lowered from 0.015 → 0.003 to catch quiet loopback audio
     SILENCE_THRESHOLD = 0.003
     # Seconds of silence before flushing buffer (person stopped speaking)
-    SILENCE_TRIGGER_SEC = 1.0
+    SILENCE_TRIGGER_SEC = 0.5    # was 1.0 — faster response after speech ends
     # Minimum speech samples before transcribing (0.5s @ 16kHz)
-    MIN_SPEECH_SAMPLES = 8000   # was 16000 — catches shorter utterances
-    # Maximum buffer before forcing a flush (10s @ 16kHz = 160000 samples)
-    MAX_BUFFER_SAMPLES = 160000
+    MIN_SPEECH_SAMPLES = 8000
+    # Maximum buffer before forcing a flush (5s @ 16kHz = 80000 samples)
+    MAX_BUFFER_SAMPLES = 80000   # was 160000 — get answers every ~5s on continuous audio
 
     def __init__(self, model_size="medium"):
         print(f"Loading Whisper model '{model_size}' on CPU (permanent, stable)...")
