@@ -98,8 +98,13 @@ Answer:"""
                 json={
                     "model": self.model,
                     "prompt": prompt,
-                    "stream": True,   # streaming: tokens arrive one by one
-                    "options": {"temperature": 0.1, "num_predict": 100},
+                    "stream": True,
+                    "options": {
+                        "temperature": 0.1,
+                        "num_predict": 100,
+                        "num_gpu": 999,    # push all model layers onto GPU
+                        "num_ctx": 2048,   # smaller context = less VRAM for KV cache
+                    },
                 },
                 stream=True,
                 timeout=45,
