@@ -38,12 +38,12 @@ def _dedupe_clauses(text: str) -> str:
 
 class Transcriber:
     # ── Tunable constants ────────────────────────────────────────────────────
-    # RMS below this → silence (no speech)
-    SILENCE_THRESHOLD = 0.015
-    # Seconds of consecutive silence before we call "person stopped speaking"
-    SILENCE_TRIGGER_SEC = 1.2
-    # Minimum speech samples required to attempt transcription (1 second)
-    MIN_SPEECH_SAMPLES = 16000
+    # RMS below this → silence. Lowered from 0.015 → 0.003 to catch quiet loopback audio
+    SILENCE_THRESHOLD = 0.003
+    # Seconds of silence before flushing buffer (person stopped speaking)
+    SILENCE_TRIGGER_SEC = 0.8   # was 1.2 — faster trigger
+    # Minimum speech samples before transcribing (0.5s @ 16kHz)
+    MIN_SPEECH_SAMPLES = 8000   # was 16000 — catches shorter utterances
 
     def __init__(self, model_size="medium"):
         print(f"Loading Whisper model '{model_size}' on CPU (permanent, stable)...")
@@ -60,22 +60,12 @@ class Transcriber:
         """Transcribe a speech segment (already silence-gated by the worker)."""
         segments, info = self.model.transcribe(
             audio_data,
-            # Fast settings — beam_size=5 is the sweet spot for speed vs accuracy
             beam_size=5,
-            # Language: auto-detect so Hindi speech is captured correctly,
-            # but the AI will always reply in English (controlled in ai_engine)
-            language=None,
+            language=None,          # auto-detect: English or Hindi
             condition_on_previous_text=False,
             no_speech_threshold=0.45,
-            # Bilingual prompt: Whisper expects Indian/British English or Hindi
-            initial_prompt=(
-                "Transcription of Indian English, British English, or Hindi speech "
-                "from a meeting or interview. "
-                "यह एक मीटिंग का ट्रांसक्रिप्शन है।"
-            ),
-            # Built-in VAD: filters silence within chunk (fast, no accuracy cost)
-            vad_filter=True,
-            vad_parameters={"min_silence_duration_ms": 300, "speech_pad_ms": 200},
+            # English-only prompt — Hindi text here causes Hindi hallucinations on silence
+            initial_prompt="Transcription of Indian English or British English speech from a meeting.",
         )
 
         text = ""
@@ -158,6 +148,14 @@ class Transcriber:
             try:
                 rms = float(np.sqrt(np.mean(chunk ** 2)))
 
+                # Debug: print RMS every 5s so we can verify audio is flowing
+                now = time.time()
+                if not hasattr(self, '_last_rms_print'):
+                    self._last_rms_print = now
+                if now - self._last_rms_print >= 5.0:
+                    print(f"[Audio] RMS={rms:.5f} (threshold={self.SILENCE_THRESHOLD}) buf={len(speech_buffer)}chunks")
+                    self._last_rms_print = now
+
                 if rms >= self.SILENCE_THRESHOLD:
                     # Active speech
                     speech_buffer.append(chunk)
@@ -177,10 +175,17 @@ class Transcriber:
                 speech_buffer.clear()
 
     def _flush(self, speech_buffer: list):
-        """Concatenate buffer and transcribe if long enough."""
+        """Two-tier check: individual chunks pass threshold, then whole buffer must have
+        sufficient average RMS to be actual speech (not background hiss)."""
         try:
             audio_data = np.concatenate(speech_buffer)
+            # Gate 2: whole-buffer average RMS must be above speech confidence level
+            avg_rms = float(np.sqrt(np.mean(audio_data ** 2)))
+            if avg_rms < 0.010:
+                print(f"[Transcriber] Buffer discarded — avg RMS {avg_rms:.5f} < 0.010 (background noise)")
+                return
             if len(audio_data) >= self.MIN_SPEECH_SAMPLES:
+                print(f"[Transcriber] Flushing {len(audio_data)/16000:.1f}s of speech (avg RMS={avg_rms:.4f})")
                 self.process_audio_chunk(audio_data)
         except Exception as e:
             print(f"[Transcriber] Flush error: {e}")

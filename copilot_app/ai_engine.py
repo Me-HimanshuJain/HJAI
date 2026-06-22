@@ -87,7 +87,7 @@ Answer:"""
                     "model": self.model,
                     "prompt": prompt,
                     "stream": False,
-                    "options": {"temperature": 0.1, "num_predict": 150},
+                    "options": {"temperature": 0.1, "num_predict": 100},
                 },
                 timeout=45,
             )
