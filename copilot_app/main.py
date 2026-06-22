@@ -41,16 +41,16 @@ _BTN_BASE = (
     " border-radius: 6px; padding: 5px 12px; border: none; }"
 )
 _BTN_CYAN = _BTN_BASE + (
-    "QPushButton { background: #00FFCC; color: #0d0d1a; }"
-    "QPushButton:hover { background: #00ddb0; }"
+    "QPushButton { background: #0078D7; color: #ffffff; }"
+    "QPushButton:hover { background: #005a9e; }"
 )
 _BTN_RED = _BTN_BASE + (
-    "QPushButton { background: #ff4466; color: #fff; }"
-    "QPushButton:hover { background: #e03355; }"
+    "QPushButton { background: #D13438; color: #fff; }"
+    "QPushButton:hover { background: #a4262c; }"
 )
 _BTN_ORANGE = _BTN_BASE + (
-    "QPushButton { background: #ff8800; color: #fff; }"
-    "QPushButton:hover { background: #e07700; }"
+    "QPushButton { background: #D83B01; color: #fff; }"
+    "QPushButton:hover { background: #a82e00; }"
 )
 
 
@@ -58,8 +58,8 @@ def _make_answer_card(text: str, idx: int) -> QFrame:
     """Create a styled answer card widget."""
     card = QFrame()
     card.setStyleSheet(
-        "QFrame { background: #131325; border-radius: 8px;"
-        " border-left: 3px solid #00FFCC; margin-bottom: 4px; }"
+        "QFrame { background: #FFFFFF; border-radius: 8px;"
+        " border-left: 3px solid #0078D7; margin-bottom: 4px; }"
     )
     layout = QVBoxLayout(card)
     layout.setContentsMargins(10, 8, 10, 8)
@@ -67,12 +67,12 @@ def _make_answer_card(text: str, idx: int) -> QFrame:
 
     num_lbl = QLabel(f"#{idx}")
     num_lbl.setFont(QFont("Segoe UI", 7, QFont.Weight.Bold))
-    num_lbl.setStyleSheet("color: #00FFCC; background: transparent; border: none;")
+    num_lbl.setStyleSheet("color: #0078D7; background: transparent; border: none;")
     layout.addWidget(num_lbl)
 
     text_lbl = QLabel(text)
     text_lbl.setFont(QFont("Segoe UI", 10))
-    text_lbl.setStyleSheet("color: #e8e8ff; background: transparent; border: none;")
+    text_lbl.setStyleSheet("color: #111111; background: transparent; border: none;")
     text_lbl.setWordWrap(True)
     text_lbl.setAlignment(Qt.AlignmentFlag.AlignTop)
     layout.addWidget(text_lbl)
@@ -105,9 +105,10 @@ class CopilotWindow(QMainWindow):
         )
         self.resize(520, 600)
         self.move(80, 80)
+        self.setWindowOpacity(0.92)
 
         root = QWidget()
-        root.setStyleSheet("background-color: #0d0d1a;")
+        root.setStyleSheet("background-color: #F0F0F5;")
         layout = QVBoxLayout(root)
         layout.setContentsMargins(14, 12, 14, 12)
         layout.setSpacing(8)
@@ -116,7 +117,7 @@ class CopilotWindow(QMainWindow):
         header_row = QHBoxLayout()
         header = QLabel("⚡ HJAI Copilot  |  Invisible to Screen Share")
         header.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-        header.setStyleSheet("color: #00FFCC;")
+        header.setStyleSheet("color: #0078D7;")
         header_row.addWidget(header, stretch=1)
 
         self.pause_btn = QPushButton("⏸ Pause")
@@ -134,20 +135,20 @@ class CopilotWindow(QMainWindow):
 
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #1e1e3a;")
+        sep.setStyleSheet("color: #E0E0E0;")
         layout.addWidget(sep)
 
         # ── Status ────────────────────────────────────────────────────────────
         self.status_label = QLabel("🎧 Listening to system audio...")
         self.status_label.setFont(QFont("Segoe UI", 8))
-        self.status_label.setStyleSheet("color: #555;")
+        self.status_label.setStyleSheet("color: #555555;")
         layout.addWidget(self.status_label)
 
         # ── HEARD section ─────────────────────────────────────────────────────
         heard_row = QHBoxLayout()
         heard_lbl = QLabel("HEARD  (click to edit)")
         heard_lbl.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
-        heard_lbl.setStyleSheet("color: #888; letter-spacing: 1px;")
+        heard_lbl.setStyleSheet("color: #555555; letter-spacing: 1px;")
         heard_row.addWidget(heard_lbl, stretch=1)
 
         reask_btn = QPushButton("↩ Re-Ask")
@@ -162,10 +163,10 @@ class CopilotWindow(QMainWindow):
         self.transcript_edit = QTextEdit()
         self.transcript_edit.setFont(QFont("Segoe UI", 10))
         self.transcript_edit.setStyleSheet(
-            "QTextEdit { color: #e8e8ff; background: #131325;"
+            "QTextEdit { color: #111111; background: #FFFFFF;"
             " border-radius: 6px; padding: 6px;"
-            " border: 1px solid #1e1e3a; }"
-            "QTextEdit:focus { border: 1px solid #00FFCC; }"
+            " border: 1px solid #E0E0E0; }"
+            "QTextEdit:focus { border: 1px solid #0078D7; }"
         )
         self.transcript_edit.setPlaceholderText("Captured speech appears here — click to edit or correct...")
         self.transcript_edit.setFixedHeight(75)
@@ -174,17 +175,17 @@ class CopilotWindow(QMainWindow):
         # ── Manual typing row ─────────────────────────────────────────────────
         type_lbl = QLabel("TYPE A QUESTION")
         type_lbl.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
-        type_lbl.setStyleSheet("color: #888; letter-spacing: 1px;")
+        type_lbl.setStyleSheet("color: #555555; letter-spacing: 1px;")
         layout.addWidget(type_lbl)
 
         type_row = QHBoxLayout()
         self.manual_input = QLineEdit()
         self.manual_input.setFont(QFont("Segoe UI", 10))
         self.manual_input.setStyleSheet(
-            "QLineEdit { color: #e8e8ff; background: #131325;"
+            "QLineEdit { color: #111111; background: #FFFFFF;"
             " border-radius: 6px; padding: 6px 10px;"
-            " border: 1px solid #1e1e3a; }"
-            "QLineEdit:focus { border: 1px solid #ff8800; }"
+            " border: 1px solid #E0E0E0; }"
+            "QLineEdit:focus { border: 1px solid #D83B01; }"
         )
         self.manual_input.setPlaceholderText("Type your question here and press Enter or Ask →")
         self.manual_input.returnPressed.connect(self._send_manual)
@@ -199,19 +200,19 @@ class CopilotWindow(QMainWindow):
 
         sep2 = QFrame()
         sep2.setFrameShape(QFrame.Shape.HLine)
-        sep2.setStyleSheet("color: #1e1e3a;")
+        sep2.setStyleSheet("color: #E0E0E0;")
         layout.addWidget(sep2)
 
         # ── ANSWERS section (scrollable) ──────────────────────────────────────
         ans_row = QHBoxLayout()
         ans_lbl = QLabel("ANSWERS")
         ans_lbl.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
-        ans_lbl.setStyleSheet("color: #00FFCC; letter-spacing: 2px;")
+        ans_lbl.setStyleSheet("color: #0078D7; letter-spacing: 2px;")
         ans_row.addWidget(ans_lbl, stretch=1)
 
         self.ans_count_lbl = QLabel("")
         self.ans_count_lbl.setFont(QFont("Segoe UI", 8))
-        self.ans_count_lbl.setStyleSheet("color: #555;")
+        self.ans_count_lbl.setStyleSheet("color: #555555;")
         ans_row.addWidget(self.ans_count_lbl)
         layout.addLayout(ans_row)
 
@@ -220,8 +221,8 @@ class CopilotWindow(QMainWindow):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setStyleSheet(
             "QScrollArea { border: none; background: transparent; }"
-            "QScrollBar:vertical { background: #1e1e3a; width: 6px; border-radius: 3px; }"
-            "QScrollBar::handle:vertical { background: #00FFCC; border-radius: 3px; }"
+            "QScrollBar:vertical { background: #E0E0E0; width: 6px; border-radius: 3px; }"
+            "QScrollBar::handle:vertical { background: #0078D7; border-radius: 3px; }"
         )
 
         self.answers_container = QWidget()
@@ -277,14 +278,14 @@ class CopilotWindow(QMainWindow):
             self.pause_btn.setText("▶ Resume")
             self.pause_btn.setStyleSheet(_BTN_RED)
             self.status_label.setText("⏸ Paused — answering what was heard so far…")
-            self.status_label.setStyleSheet("color: #ff4466;")
+            self.status_label.setStyleSheet("color: #D13438;")
             QTimer.singleShot(200, lambda: setattr(self._transcriber, "is_paused", True))
         else:
             self._transcriber.is_paused = False
             self.pause_btn.setText("⏸ Pause")
             self.pause_btn.setStyleSheet(_BTN_CYAN)
             self.status_label.setText("🎧 Listening to system audio...")
-            self.status_label.setStyleSheet("color: #555;")
+            self.status_label.setStyleSheet("color: #555555;")
 
     def _reset(self):
         """Clear everything — transcript, all answer cards, AI context."""
@@ -304,7 +305,7 @@ class CopilotWindow(QMainWindow):
         self.ans_count_lbl.setText("")
         if not self._paused:
             self.status_label.setText("🎧 Listening to system audio...")
-            self.status_label.setStyleSheet("color: #555;")
+            self.status_label.setStyleSheet("color: #555555;")
 
     def _send_manual(self):
         """Send typed question directly to AI (same pipeline as voice input)."""
@@ -317,7 +318,7 @@ class CopilotWindow(QMainWindow):
         self.transcript_edit.setPlainText(text)
         self.manual_input.clear()
         self.status_label.setText("📨 Manual question sent...")
-        self.status_label.setStyleSheet("color: #00FFCC;")
+        self.status_label.setStyleSheet("color: #0078D7;")
 
     def _reask_from_heard(self):
         """Re-send the (possibly edited) HEARD text to the AI."""
@@ -327,7 +328,7 @@ class CopilotWindow(QMainWindow):
         print(f"[Re-Ask] {text}")
         self._transcriber.text_queue.put(text)
         self.status_label.setText("↩ Re-asking with edited text...")
-        self.status_label.setStyleSheet("color: #00FFCC;")
+        self.status_label.setStyleSheet("color: #0078D7;")
 
     # ── Refresh loop ──────────────────────────────────────────────────────────
 
@@ -353,7 +354,7 @@ class CopilotWindow(QMainWindow):
                 self._scroll_to_bottom()
             if not self._paused:
                 self.status_label.setText("🤖 Generating answer…")
-                self.status_label.setStyleSheet("color: #ffaa00;")
+                self.status_label.setStyleSheet("color: #D83B01;")
         else:
             # Finalize answer
             answer = self._ai.get_latest_answer()
@@ -370,7 +371,7 @@ class CopilotWindow(QMainWindow):
                     self._scroll_to_bottom()
                 if not self._paused:
                     self.status_label.setText("🎧 Listening to system audio...")
-                    self.status_label.setStyleSheet("color: #555;")
+                    self.status_label.setStyleSheet("color: #555555;")
 
     # ── Shutdown ──────────────────────────────────────────────────────────────
 
