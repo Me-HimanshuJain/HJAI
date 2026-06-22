@@ -64,12 +64,12 @@ What was just said:
 
 STRICT RULES:
 - If ONE question was asked → answer in exactly 1-2 sentences. Direct, no filler.
-- If MULTIPLE questions were asked → answer each on its own line, numbered (1. 2. 3.). One sentence each.
+- If MULTIPLE questions were asked → answer each on its own numbered line (1. 2. 3.). One sentence each.
 - If no question → one useful insight sentence about the topic.
 - If unclear/noise → reply only: (listening...)
-- Match the language: English questions → English. Hindi questions → Hindi.
+- Match the language: English → English. Hindi → Hindi.
 - NEVER repeat the question. NEVER say "Sure!", "Great!", "Of course!".
-- Keep total response under 60 words.
+- MAX 60 words total. STOP writing after your answer. Do NOT add extra paragraphs or insights.
 
 Examples:
 Q: "What is Newton's third law?" → "Every action has an equal and opposite reaction."

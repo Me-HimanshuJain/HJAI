@@ -41,11 +41,26 @@ class Transcriber:
         """Transcribe a speech segment (already silence-gated by the worker)."""
         segments, info = self.model.transcribe(
             audio_data,
-            beam_size=5,
-            language=None,
+            # ── Search settings (more thorough = better on accented speech) ────
+            beam_size=7,       # was 5 — wider search catches accented phonemes better
+            best_of=5,         # sample 5 candidates, pick the highest-scoring one
+            patience=1.5,      # extend beam search (default 1.0) for harder accents
+            # ── Language & accent settings ────────────────────────────────────
+            language=None,     # auto-detect: English (any accent) or Hindi per chunk
             condition_on_previous_text=False,
             no_speech_threshold=0.45,
-            initial_prompt="English and Hindi conversation transcript:",
+            # Bilingual prompt primes Whisper for Indian/British English and Hindi
+            initial_prompt=(
+                "Transcription of Indian English, British English, or Hindi speech "
+                "from a professional meeting or interview. "
+                "यह एक मीटिंग या इंटरव्यू का ट्रांसक्रिप्शन है।"
+            ),
+            # ── Built-in Silero VAD (filters internal silence within chunk) ────
+            vad_filter=True,
+            vad_parameters={
+                "min_silence_duration_ms": 300,
+                "speech_pad_ms": 200,
+            },
         )
 
         text = ""
