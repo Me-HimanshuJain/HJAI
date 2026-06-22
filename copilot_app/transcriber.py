@@ -48,13 +48,32 @@ class Transcriber:
     MAX_BUFFER_SAMPLES = 80000   # was 160000 — get answers every ~5s on continuous audio
 
     def __init__(self, model_size="medium"):
-        print(f"Loading Whisper model '{model_size}' on CPU (permanent, stable)...")
-        self.model = WhisperModel(model_size, device="cpu", compute_type="int8")
+        self.model = self._load_model(model_size)
         print("Whisper loaded successfully!")
         self.text_queue = queue.Queue()
         self.is_running = False
-        self.is_paused = False        # controlled by UI pause button
-        self._flush_event = threading.Event()  # set by flush() to trigger immediate transcription
+        self.is_paused = False
+        self._flush_event = threading.Event()
+
+    def _load_model(self, model_size: str):
+        """Try GPU (CUDA float16) first — 3-5x faster. Fall back to CPU int8."""
+        try:
+            import torch
+            if torch.cuda.is_available():
+                print(f"Loading Whisper '{model_size}' on GPU (CUDA float16)...")
+                from faster_whisper import WhisperModel
+                model = WhisperModel(model_size, device="cuda", compute_type="float16")
+                # Warm-up: tiny silent array so CUDA kernels are compiled now
+                import numpy as np
+                model.transcribe(np.zeros(3200, dtype=np.float32), beam_size=1)
+                print("✅ Whisper running on GPU — fast mode active!")
+                return model
+        except Exception as e:
+            print(f"GPU load failed ({e}), falling back to CPU...")
+
+        print(f"Loading Whisper '{model_size}' on CPU (int8 stable)...")
+        from faster_whisper import WhisperModel
+        return WhisperModel(model_size, device="cpu", compute_type="int8")
 
     # ── Core transcription ───────────────────────────────────────────────────
 
