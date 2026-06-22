@@ -176,13 +176,17 @@ class CopilotWindow(QMainWindow):
 
     def _toggle_pause(self):
         self._paused = not self._paused
-        self._transcriber.is_paused = self._paused
         if self._paused:
+            # Flush buffered speech BEFORE pausing so the AI answers what was heard so far
+            self._transcriber.flush()
             self.pause_btn.setText("▶ Resume")
             self.pause_btn.setStyleSheet(_BTN_RED)
-            self.status_label.setText("⏸ Paused — click Resume to continue listening")
+            self.status_label.setText("⏸ Paused — answering what was heard so far…")
             self.status_label.setStyleSheet("color: #ff4466;")
+            # Set paused AFTER flush so the worker can still process the flushed chunk
+            QTimer.singleShot(200, lambda: setattr(self._transcriber, "is_paused", True))
         else:
+            self._transcriber.is_paused = False
             self.pause_btn.setText("⏸ Pause")
             self.pause_btn.setStyleSheet(_BTN_CYAN)
             self.status_label.setText("🎧 Listening to system audio...")

@@ -32,7 +32,8 @@ class Transcriber:
         print("Whisper loaded successfully!")
         self.text_queue = queue.Queue()
         self.is_running = False
-        self.is_paused = False   # controlled by UI pause button
+        self.is_paused = False        # controlled by UI pause button
+        self._flush_event = threading.Event()  # set by flush() to trigger immediate transcription
 
     # ── Core transcription ───────────────────────────────────────────────────
 
@@ -80,18 +81,28 @@ class Transcriber:
         """
         Silence-triggered transcription:
         Accumulate audio while speech is detected.
-        When silence lasts >= SILENCE_TRIGGER_SEC, flush buffer → transcribe.
-        This means transcription happens exactly when the person STOPS speaking.
+        When silence lasts >= SILENCE_TRIGGER_SEC OR flush() is called,
+        flush buffer → transcribe.
         """
         speech_buffer = []
-        last_speech_time = None   # time of last audio chunk above threshold
-        triggered = False         # True after we've already flushed this silence period
+        last_speech_time = None
+        triggered = False
 
         while self.is_running:
+            # ── Check for manual flush (Pause button pressed mid-speech) ──────
+            if self._flush_event.is_set():
+                self._flush_event.clear()
+                if speech_buffer:
+                    print("[Transcriber] Manual flush triggered (Pause)")
+                    self._flush(speech_buffer)
+                    speech_buffer = []
+                    triggered = True
+                continue
+
             try:
                 chunk = audio_queue.get(timeout=0.1)
             except queue.Empty:
-                # No audio in queue — check if we should flush due to silence
+                # No audio — check if silence timeout reached
                 if (speech_buffer and last_speech_time is not None
                         and not triggered
                         and not self.is_paused):
@@ -117,7 +128,7 @@ class Transcriber:
                     last_speech_time = time.time()
                     triggered = False
                 else:
-                    # Silence frame — check if we should flush
+                    # Silence frame — check timeout
                     if (speech_buffer and last_speech_time is not None
                             and not triggered):
                         silence_dur = time.time() - last_speech_time
@@ -139,6 +150,10 @@ class Transcriber:
             print(f"[Transcriber] Flush error: {e}")
 
     # ── Public API ───────────────────────────────────────────────────────────
+
+    def flush(self):
+        """Called by UI Pause button to immediately transcribe buffered speech."""
+        self._flush_event.set()
 
     def reset(self):
         """Clear the text queue (called by Reset button)."""
