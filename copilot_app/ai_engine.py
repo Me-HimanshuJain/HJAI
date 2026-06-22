@@ -23,11 +23,11 @@ class AIEngine:
     def _worker(self, context_queue: queue.Queue):
         """
         Immediate-response worker:
-        Each new transcription that arrives triggers an AI answer right away.
-        No timer — the silence-detector in the transcriber already batched
-        the speech into a complete utterance before sending it here.
+        Each new transcription triggers an AI answer right away.
+        Latest utterance is passed separately so the AI always answers
+        what was JUST said, not a mix of old + new topics.
         """
-        sentences = []   # rolling context window (last 6 utterances)
+        recent = []   # rolling context — last 2 sentences only
 
         while self.is_running:
             try:
@@ -39,44 +39,49 @@ class AIEngine:
             if not new_text:
                 continue
 
-            sentences.append(new_text)
-            sentences = sentences[-6:]                    # keep last 6 sentences
-            self.transcript_queue.put(new_text)           # push to UI immediately
+            self.transcript_queue.put(new_text)   # push to UI immediately
 
-            context_buffer = " ".join(sentences)
-            if len(context_buffer.strip()) < 15:
-                continue                                   # too short to answer
+            if len(new_text.strip()) < 15:
+                recent.append(new_text)
+                recent = recent[-2:]
+                continue   # too short to answer
+
+            context_history = " ".join(recent)    # previous lines as context
+            recent.append(new_text)
+            recent = recent[-2:]                  # keep only last 2
 
             self.is_thinking = True
-            print(f"[AI] Generating answer for: {context_buffer[:90]}...")
-            answer = self._generate_answer(context_buffer)
+            print(f"[AI] Answering: {new_text[:80]}...")
+            answer = self._generate_answer(new_text, context_history)
             self.is_thinking = False
 
             if answer:
                 print(f"[Answer] {answer}")
                 self.answer_queue.put(answer)
 
-    def _generate_answer(self, context_text: str):
+    def _generate_answer(self, latest_text: str, context_history: str = ""):
+        context_block = f'Previous context:\n"{context_history}"\n\n' if context_history.strip() else ""
         prompt = f"""You are HJAI — a silent AI copilot listening live to a meeting or interview.
 
-What was just said:
-"{context_text}"
+{context_block}Latest statement/question:
+"{latest_text}"
 
 STRICT RULES:
-- If ONE question was asked → answer in exactly 1-2 sentences. Direct, no filler.
-- If MULTIPLE questions were asked → answer each on its own numbered line (1. 2. 3.). One sentence each.
-- If no question → one useful insight sentence about the topic.
+- Answer ONLY the latest statement/question above.
+- If ONE question → answer in 1-2 sentences. Direct, no filler.
+- If MULTIPLE questions → number them (1. 2. 3.). One sentence each.
+- If no question → one useful insight sentence.
 - If unclear/noise → reply only: (listening...)
-- ALWAYS answer in ENGLISH, even if the input was in Hindi or any other language.
+- ALWAYS answer in ENGLISH regardless of input language.
 - NEVER repeat the question. NEVER say "Sure!", "Great!", "Of course!".
-- MAX 60 words total. STOP after your answer. No extra paragraphs.
+- MAX 60 words. STOP after your answer.
 
 Examples:
-Q: "What is Newton's third law?" → "Every action has an equal and opposite reaction."
-Q: "What opportunities for training? What does success look like? Best thing about the company?" →
-1. Training is offered through mentorship and quarterly skill workshops.
-2. Success means hitting agreed KPIs and growing team impact within 12 months.
-3. The best thing is a culture that rewards initiative and personal growth.
+"What is Newton's third law?" → "Every action has an equal and opposite reaction."
+"India mein kitne states hain?" → "India has 28 states and 8 Union Territories."
+"What opportunities for training? What does success look like?" →
+1. Training is offered through mentorship and quarterly workshops.
+2. Success means hitting KPIs and growing team impact within 12 months.
 
 Answer:"""
 
