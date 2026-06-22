@@ -67,9 +67,9 @@ STRICT RULES:
 - If MULTIPLE questions were asked → answer each on its own numbered line (1. 2. 3.). One sentence each.
 - If no question → one useful insight sentence about the topic.
 - If unclear/noise → reply only: (listening...)
-- Match the language: English → English. Hindi → Hindi.
+- ALWAYS answer in ENGLISH, even if the input was in Hindi or any other language.
 - NEVER repeat the question. NEVER say "Sure!", "Great!", "Of course!".
-- MAX 60 words total. STOP writing after your answer. Do NOT add extra paragraphs or insights.
+- MAX 60 words total. STOP after your answer. No extra paragraphs.
 
 Examples:
 Q: "What is Newton's third law?" → "Every action has an equal and opposite reaction."

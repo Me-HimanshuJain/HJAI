@@ -42,7 +42,7 @@ _BTN_BASE = (
     "QPushButton {"
     "  font-size: 11px; font-weight: bold;"
     "  border-radius: 6px; padding: 5px 12px;"
-    "  border: none; cursor: pointer;"
+    "  border: none;"
     "}"
 )
 _BTN_CYAN = _BTN_BASE + (
