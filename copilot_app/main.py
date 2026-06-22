@@ -99,8 +99,11 @@ class CopilotWindow(QMainWindow):
 
     def _build_ui(self):
         self.setWindowTitle("HJAI Copilot")
-        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        self.resize(520, 560)
+        self.setWindowFlags(
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool   # removes taskbar button — invisible to screen share viewers
+        )
+        self.resize(520, 600)
         self.move(80, 80)
 
         root = QWidget()
