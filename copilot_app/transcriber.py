@@ -17,6 +17,25 @@ _LANG_LABELS = {
 }
 
 
+def _dedupe_clauses(text: str) -> str:
+    """
+    Remove Whisper looping hallucinations.
+    e.g. "X is equal to X is equal to X is equal to" → "X is equal to"
+    Splits on '.', ',', '!', '?' and keeps only the first occurrence of each clause.
+    """
+    import re
+    # Split into clauses on sentence/clause boundaries
+    parts = re.split(r'(?<=[.!?,])\s+', text)
+    seen = []
+    result = []
+    for part in parts:
+        key = part.strip().lower().rstrip(".,!?")
+        if key and key not in seen:
+            seen.append(key)
+            result.append(part.strip())
+    return " ".join(result).strip()
+
+
 class Transcriber:
     # ── Tunable constants ────────────────────────────────────────────────────
     # RMS below this → silence (no speech)
@@ -61,7 +80,7 @@ class Transcriber:
 
         text = ""
         for segment in segments:
-            if segment.no_speech_prob > 0.4:
+            if segment.no_speech_prob > 0.35:   # tighter: drop noisy segments earlier
                 continue
             text += segment.text + " "
 
@@ -77,9 +96,15 @@ class Transcriber:
         if len(text) < 8 or len(set(text.lower().replace(" ", ""))) < 4:
             return
 
-        if text:
-            print(f"[Heard] {text}")
-            self.text_queue.put(text)
+        # ── Repetition-loop filter ───────────────────────────────────────────
+        # Whisper sometimes loops: "X is equal to X is equal to X is equal to"
+        # Split into clauses and keep only the first occurrence of each.
+        text = _dedupe_clauses(text)
+        if not text:
+            return
+
+        print(f"[Heard] {text}")
+        self.text_queue.put(text)
 
     # ── Background worker ────────────────────────────────────────────────────
 
