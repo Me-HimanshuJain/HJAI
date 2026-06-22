@@ -28,7 +28,8 @@ print("All engines ready! Launching UI...")
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QLabel,
     QVBoxLayout, QHBoxLayout, QWidget,
-    QFrame, QPushButton, QScrollArea
+    QFrame, QPushButton, QScrollArea,
+    QTextEdit, QLineEdit
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
@@ -140,19 +141,58 @@ class CopilotWindow(QMainWindow):
         layout.addWidget(self.status_label)
 
         # ── HEARD section ─────────────────────────────────────────────────────
-        heard_lbl = QLabel("HEARD")
+        heard_row = QHBoxLayout()
+        heard_lbl = QLabel("HEARD  (click to edit)")
         heard_lbl.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
-        heard_lbl.setStyleSheet("color: #888; letter-spacing: 2px;")
-        layout.addWidget(heard_lbl)
+        heard_lbl.setStyleSheet("color: #888; letter-spacing: 1px;")
+        heard_row.addWidget(heard_lbl, stretch=1)
 
-        self.transcript_label = QLabel("Listening for speech...")
-        self.transcript_label.setFont(QFont("Segoe UI", 10))
-        self.transcript_label.setStyleSheet(
-            "color: #aaa; background: #131325; border-radius: 6px; padding: 8px;"
+        reask_btn = QPushButton("↩ Re-Ask")
+        reask_btn.setStyleSheet(_BTN_CYAN)
+        reask_btn.setFixedWidth(80)
+        reask_btn.setToolTip("Send the edited HEARD text to the AI")
+        reask_btn.clicked.connect(self._reask_from_heard)
+        heard_row.addWidget(reask_btn)
+        layout.addLayout(heard_row)
+
+        # Editable transcript box — user can correct Whisper mistakes
+        self.transcript_edit = QTextEdit()
+        self.transcript_edit.setFont(QFont("Segoe UI", 10))
+        self.transcript_edit.setStyleSheet(
+            "QTextEdit { color: #e8e8ff; background: #131325;"
+            " border-radius: 6px; padding: 6px;"
+            " border: 1px solid #1e1e3a; }"
+            "QTextEdit:focus { border: 1px solid #00FFCC; }"
         )
-        self.transcript_label.setWordWrap(True)
-        self.transcript_label.setFixedHeight(70)
-        layout.addWidget(self.transcript_label)
+        self.transcript_edit.setPlaceholderText("Captured speech appears here — click to edit or correct...")
+        self.transcript_edit.setFixedHeight(75)
+        layout.addWidget(self.transcript_edit)
+
+        # ── Manual typing row ─────────────────────────────────────────────────
+        type_lbl = QLabel("TYPE A QUESTION")
+        type_lbl.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
+        type_lbl.setStyleSheet("color: #888; letter-spacing: 1px;")
+        layout.addWidget(type_lbl)
+
+        type_row = QHBoxLayout()
+        self.manual_input = QLineEdit()
+        self.manual_input.setFont(QFont("Segoe UI", 10))
+        self.manual_input.setStyleSheet(
+            "QLineEdit { color: #e8e8ff; background: #131325;"
+            " border-radius: 6px; padding: 6px 10px;"
+            " border: 1px solid #1e1e3a; }"
+            "QLineEdit:focus { border: 1px solid #ff8800; }"
+        )
+        self.manual_input.setPlaceholderText("Type your question here and press Enter or Ask →")
+        self.manual_input.returnPressed.connect(self._send_manual)
+        type_row.addWidget(self.manual_input, stretch=1)
+
+        ask_btn = QPushButton("Ask →")
+        ask_btn.setStyleSheet(_BTN_ORANGE)
+        ask_btn.setFixedWidth(70)
+        ask_btn.clicked.connect(self._send_manual)
+        type_row.addWidget(ask_btn)
+        layout.addLayout(type_row)
 
         sep2 = QFrame()
         sep2.setFrameShape(QFrame.Shape.HLine)
@@ -256,27 +296,51 @@ class CopilotWindow(QMainWindow):
             if item.widget():
                 item.widget().deleteLater()
 
-        self.transcript_label.setText("Listening for speech...")
+        self.transcript_edit.clear()
+        self.manual_input.clear()
         self.ans_count_lbl.setText("")
         if not self._paused:
             self.status_label.setText("🎧 Listening to system audio...")
             self.status_label.setStyleSheet("color: #555;")
 
+    def _send_manual(self):
+        """Send typed question directly to AI (same pipeline as voice input)."""
+        text = self.manual_input.text().strip()
+        if not text:
+            return
+        print(f"[Manual] {text}")
+        self._transcriber.text_queue.put(text)   # feeds straight into AI worker
+        # Show it in the HEARD box too so user can see what was sent
+        self.transcript_edit.setPlainText(text)
+        self.manual_input.clear()
+        self.status_label.setText("📨 Manual question sent...")
+        self.status_label.setStyleSheet("color: #00FFCC;")
+
+    def _reask_from_heard(self):
+        """Re-send the (possibly edited) HEARD text to the AI."""
+        text = self.transcript_edit.toPlainText().strip()
+        if not text:
+            return
+        print(f"[Re-Ask] {text}")
+        self._transcriber.text_queue.put(text)
+        self.status_label.setText("↩ Re-asking with edited text...")
+        self.status_label.setStyleSheet("color: #00FFCC;")
+
     # ── Refresh loop ──────────────────────────────────────────────────────────
 
     def _refresh(self):
-        # ── Transcript ────────────────────────────────────────────────────────
+        # ── Transcript (auto-append from voice, don't overwrite if user is editing) ──
         new_transcript = self._ai.get_latest_transcript()
         if new_transcript:
-            current = self.transcript_label.text()
-            if current == "Listening for speech...":
-                current = ""
-            combined = (current + " " + new_transcript).strip()
-            if len(combined) > 200:
-                combined = "…" + combined[-200:]
-            self.transcript_label.setText(combined)
+            current = self.transcript_edit.toPlainText()
+            combined = (current + " " + new_transcript).strip() if current else new_transcript
+            if len(combined) > 300:
+                combined = "…" + combined[-300:]
+            # Only update if user isn't actively typing in the box
+            if not self.transcript_edit.hasFocus():
+                self.transcript_edit.setPlainText(combined)
 
-        # ── Streaming partial answer ──────────────────────────────────────────
+        # ── Streaming partial answer ─────────────────────────────────────────────────
         if self._ai.is_thinking:
             partial = self._ai.partial_answer
             if self._pending_card_label is None:
