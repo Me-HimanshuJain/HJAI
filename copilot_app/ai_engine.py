@@ -7,56 +7,76 @@ import time
 class AIEngine:
     def __init__(self, ollama_url="http://localhost:11434"):
         self.ollama_url = ollama_url
-        self.model = "llama3:latest"  # Model confirmed installed via `ollama list`
+        self.model = "phi3:mini"   # Fast 3.8B model — ~5-15s response
         self.answer_queue = queue.Queue()
-        self.transcript_queue = queue.Queue()  # For showing raw transcript in UI
+        self.transcript_queue = queue.Queue()
         self.is_running = False
+        self.is_thinking = False   # True while Ollama is generating
 
     def start_worker(self, context_queue: queue.Queue):
         self.is_running = True
-        self.thread = threading.Thread(target=self._worker, args=(context_queue,))
-        self.thread.daemon = True
+        self.thread = threading.Thread(
+            target=self._worker, args=(context_queue,), daemon=True
+        )
         self.thread.start()
 
     def _worker(self, context_queue: queue.Queue):
-        context_buffer = ""
-        last_process_time = time.time()
+        """
+        Immediate-response worker:
+        Each new transcription that arrives triggers an AI answer right away.
+        No timer — the silence-detector in the transcriber already batched
+        the speech into a complete utterance before sending it here.
+        """
+        sentences = []   # rolling context window (last 6 utterances)
 
         while self.is_running:
             try:
                 new_text = context_queue.get(timeout=0.5)
-                context_buffer += new_text + " "
-                # Always push the latest transcript to UI
-                self.transcript_queue.put(new_text)
             except queue.Empty:
-                pass
+                continue
 
-            # Generate an answer every 5 seconds if there's enough spoken content
-            if time.time() - last_process_time > 5.0 and len(context_buffer.strip()) > 20:
-                answer = self._generate_answer(context_buffer)
-                if answer:
-                    self.answer_queue.put(answer)
+            new_text = new_text.strip()
+            if not new_text:
+                continue
 
-                # Keep a sliding window of context (last 800 chars)
-                context_buffer = context_buffer[-800:]
-                last_process_time = time.time()
+            sentences.append(new_text)
+            sentences = sentences[-6:]                    # keep last 6 sentences
+            self.transcript_queue.put(new_text)           # push to UI immediately
+
+            context_buffer = " ".join(sentences)
+            if len(context_buffer.strip()) < 15:
+                continue                                   # too short to answer
+
+            self.is_thinking = True
+            print(f"[AI] Generating answer for: {context_buffer[:90]}...")
+            answer = self._generate_answer(context_buffer)
+            self.is_thinking = False
+
+            if answer:
+                print(f"[Answer] {answer}")
+                self.answer_queue.put(answer)
 
     def _generate_answer(self, context_text: str):
-        prompt = f"""You are a real-time meeting copilot assistant.
+        prompt = f"""You are HJAI — a silent AI copilot listening live to a meeting or interview.
 
-Someone said this during a live call or meeting:
+What was just said:
 "{context_text}"
 
-Your task:
-- If they asked a question (directly or indirectly), answer it in 1-3 short, clear sentences.
-- Use simple, direct language. No filler words like "Sure!" or "Of course!".
-- If no question was asked, write a 1-sentence summary of the key topic discussed.
-- Do NOT repeat the question. Just give the answer directly.
+STRICT RULES:
+- If ONE question was asked → answer in exactly 1-2 sentences. Direct, no filler.
+- If MULTIPLE questions were asked → answer each on its own line, numbered (1. 2. 3.). One sentence each.
+- If no question → one useful insight sentence about the topic.
+- If unclear/noise → reply only: (listening...)
+- Match the language: English questions → English. Hindi questions → Hindi.
+- NEVER repeat the question. NEVER say "Sure!", "Great!", "Of course!".
+- Keep total response under 60 words.
 
 Examples:
-- Question: "What is Newton's third law?" → Answer: "Every action has an equal and opposite reaction."
-- Question: "Who founded Microsoft?" → Answer: "Microsoft was founded by Bill Gates and Paul Allen in 1975."
-- Statement (no question) → Brief topic summary.
+Q: "What is Newton's third law?" → "Every action has an equal and opposite reaction."
+Q: "What opportunities for training? What does success look like? Best thing about the company?" →
+1. Training is offered through mentorship and quarterly skill workshops.
+2. Success means hitting agreed KPIs and growing team impact within 12 months.
+3. The best thing is a culture that rewards initiative and personal growth.
 
 Answer:"""
 
@@ -67,25 +87,35 @@ Answer:"""
                     "model": self.model,
                     "prompt": prompt,
                     "stream": False,
-                    "options": {"temperature": 0.2, "num_predict": 100},
+                    "options": {"temperature": 0.1, "num_predict": 150},
                 },
-                timeout=30,
+                timeout=45,
             )
             response.raise_for_status()
-            return response.json().get("response", "").strip()
+            result = response.json().get("response", "").strip()
+            if result and "(listening...)" not in result.lower():
+                return result
+            return None
         except Exception as e:
             print(f"Ollama API Error: {e}")
             return None
 
+    def reset(self):
+        """Clear both queues (called by Reset button)."""
+        for q in (self.answer_queue, self.transcript_queue):
+            while not q.empty():
+                try:
+                    q.get_nowait()
+                except queue.Empty:
+                    break
+
     def get_latest_answer(self):
-        """Returns the newest AI answer, or None if none available."""
         answer = None
         while not self.answer_queue.empty():
             answer = self.answer_queue.get()
         return answer
 
     def get_latest_transcript(self):
-        """Returns recently transcribed text snippets for display in UI."""
         parts = []
         while not self.transcript_queue.empty():
             parts.append(self.transcript_queue.get())
@@ -94,4 +124,4 @@ Answer:"""
     def stop(self):
         self.is_running = False
         if hasattr(self, "thread"):
-            self.thread.join(timeout=2.0)
+            self.thread.join(timeout=20.0)

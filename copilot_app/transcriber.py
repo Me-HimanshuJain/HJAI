@@ -1,5 +1,3 @@
-import os
-import sys
 import queue
 import time
 import threading
@@ -7,80 +5,148 @@ import numpy as np
 from faster_whisper import WhisperModel
 
 # ============================================================
-# PERMANENT FIX: Whisper runs on CPU, Ollama runs on GPU.
-#
-# Root Cause: CTranslate2 v4+ on Windows silently aborts at the
-# C++ level when initializing CUDA, completely bypassing Python's
-# try/except. This is a known upstream bug with CUDA 12.x drivers.
-#
-# Solution: The "base" Whisper model (74MB) transcribes in
-# near-real-time on CPU. Ollama (the heavy AI model) uses the
-# GPU via its own separate CUDA runtime. Best of both worlds.
+# Whisper runs on CPU (int8), Ollama uses GPU separately.
+# CTranslate2 v4+ on Windows silently crashes on CUDA init —
+# keeping Whisper on CPU is the permanent, stable fix.
 # ============================================================
 
+# Language labels Whisper sometimes hallucinates as first word
+_LANG_LABELS = {
+    "English", "Hindi", "Japanese", "Chinese", "Korean",
+    "French", "German", "Spanish", "Thai", "Arabic", "Russian",
+}
+
+
 class Transcriber:
-    def __init__(self, model_size="base"):
+    # ── Tunable constants ────────────────────────────────────────────────────
+    # RMS below this → silence (no speech)
+    SILENCE_THRESHOLD = 0.015
+    # Seconds of consecutive silence before we call "person stopped speaking"
+    SILENCE_TRIGGER_SEC = 1.2
+    # Minimum speech samples required to attempt transcription (1 second)
+    MIN_SPEECH_SAMPLES = 16000
+
+    def __init__(self, model_size="medium"):
         print(f"Loading Whisper model '{model_size}' on CPU (permanent, stable)...")
         self.model = WhisperModel(model_size, device="cpu", compute_type="int8")
         print("Whisper loaded successfully!")
         self.text_queue = queue.Queue()
         self.is_running = False
+        self.is_paused = False   # controlled by UI pause button
 
-    # Minimum RMS amplitude to consider audio as speech (not silence)
-    SILENCE_THRESHOLD = 0.01
+    # ── Core transcription ───────────────────────────────────────────────────
 
     def process_audio_chunk(self, audio_data: np.ndarray):
-        """Transcribe audio only if speech is actually detected (VAD gate)."""
-        # ── Voice Activity Detection ──────────────────────────────────────────
-        rms = float(np.sqrt(np.mean(audio_data ** 2)))
-        if rms < self.SILENCE_THRESHOLD:
-            return  # Skip silent chunks — prevents Whisper hallucinations
-
-        # ── Transcribe with anti-hallucination settings ───────────────────────
+        """Transcribe a speech segment (already silence-gated by the worker)."""
         segments, info = self.model.transcribe(
             audio_data,
             beam_size=5,
-            # No language lock — Whisper auto-detects English & Hindi per chunk
+            language=None,
             condition_on_previous_text=False,
-            no_speech_threshold=0.6,
-            initial_prompt="Meeting transcript:",
+            no_speech_threshold=0.45,
+            initial_prompt="English and Hindi conversation transcript:",
         )
 
         text = ""
         for segment in segments:
-            if segment.no_speech_prob > 0.6:
+            if segment.no_speech_prob > 0.4:
                 continue
             text += segment.text + " "
 
         text = text.strip()
+
+        # Strip language-label hallucinations (e.g. "English in the position...")
+        words = text.split()
+        if words and words[0] in _LANG_LABELS:
+            words = words[1:]
+            text = " ".join(words).strip()
+
+        # Drop very short or repetitive noise segments
+        if len(text) < 8 or len(set(text.lower().replace(" ", ""))) < 4:
+            return
+
         if text:
             print(f"[Heard] {text}")
             self.text_queue.put(text)
 
+    # ── Background worker ────────────────────────────────────────────────────
+
     def start_worker(self, audio_queue: queue.Queue):
         self.is_running = True
-        self.thread = threading.Thread(target=self._worker, args=(audio_queue,))
-        self.thread.daemon = True
+        self.thread = threading.Thread(target=self._worker, args=(audio_queue,), daemon=True)
         self.thread.start()
 
     def _worker(self, audio_queue: queue.Queue):
-        buffer = []
-        last_process_time = time.time()
+        """
+        Silence-triggered transcription:
+        Accumulate audio while speech is detected.
+        When silence lasts >= SILENCE_TRIGGER_SEC, flush buffer → transcribe.
+        This means transcription happens exactly when the person STOPS speaking.
+        """
+        speech_buffer = []
+        last_speech_time = None   # time of last audio chunk above threshold
+        triggered = False         # True after we've already flushed this silence period
 
         while self.is_running:
             try:
-                audio_chunk = audio_queue.get(timeout=0.1)
-                buffer.append(audio_chunk)
+                chunk = audio_queue.get(timeout=0.1)
             except queue.Empty:
-                pass
+                # No audio in queue — check if we should flush due to silence
+                if (speech_buffer and last_speech_time is not None
+                        and not triggered
+                        and not self.is_paused):
+                    silence_dur = time.time() - last_speech_time
+                    if silence_dur >= self.SILENCE_TRIGGER_SEC:
+                        self._flush(speech_buffer)
+                        speech_buffer = []
+                        triggered = True
+                continue
+            except Exception as e:
+                print(f"[Transcriber] Queue error: {e}")
+                continue
 
-            # Process buffer every 1 second for low-latency transcription
-            if time.time() - last_process_time > 1.0 and len(buffer) > 0:
-                audio_data = np.concatenate(buffer)
-                if len(audio_data) > 16000:  # At least 1 second at 16kHz
-                    self.process_audio_chunk(audio_data)
-                buffer = []
-                last_process_time = time.time()
+            if self.is_paused:
+                continue  # discard audio while paused
+
+            try:
+                rms = float(np.sqrt(np.mean(chunk ** 2)))
+
+                if rms >= self.SILENCE_THRESHOLD:
+                    # Active speech
+                    speech_buffer.append(chunk)
+                    last_speech_time = time.time()
+                    triggered = False
+                else:
+                    # Silence frame — check if we should flush
+                    if (speech_buffer and last_speech_time is not None
+                            and not triggered):
+                        silence_dur = time.time() - last_speech_time
+                        if silence_dur >= self.SILENCE_TRIGGER_SEC:
+                            self._flush(speech_buffer)
+                            speech_buffer = []
+                            triggered = True
+            except Exception as e:
+                print(f"[Transcriber] Processing error: {e}")
+                speech_buffer.clear()
+
+    def _flush(self, speech_buffer: list):
+        """Concatenate buffer and transcribe if long enough."""
+        try:
+            audio_data = np.concatenate(speech_buffer)
+            if len(audio_data) >= self.MIN_SPEECH_SAMPLES:
+                self.process_audio_chunk(audio_data)
+        except Exception as e:
+            print(f"[Transcriber] Flush error: {e}")
+
+    # ── Public API ───────────────────────────────────────────────────────────
+
+    def reset(self):
+        """Clear the text queue (called by Reset button)."""
+        while not self.text_queue.empty():
+            try:
+                self.text_queue.get_nowait()
+            except queue.Empty:
+                break
 
     def get_latest_text(self):
         text = []
@@ -90,5 +156,5 @@ class Transcriber:
 
     def stop(self):
         self.is_running = False
-        if hasattr(self, 'thread'):
+        if hasattr(self, "thread"):
             self.thread.join(timeout=2.0)

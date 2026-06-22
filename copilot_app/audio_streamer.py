@@ -6,11 +6,10 @@ import threading
 
 class AudioStreamer:
     """
-    Captures audio from TWO sources simultaneously:
-      1. WASAPI Loopback  — whatever Windows is playing (to speakers OR headset)
-      2. Microphone        — the user's own voice
-
-    This ensures full coverage whether earbuds, headphones, or speakers are used.
+    Captures SYSTEM audio only via WASAPI Loopback.
+    This captures everything Windows plays — YouTube, movies, Meet/Zoom calls,
+    music, any app audio — regardless of whether speakers or earbuds are used.
+    Microphone input is intentionally excluded.
     """
 
     def __init__(self, sample_rate=16000, chunk_size=1024):
@@ -84,6 +83,9 @@ class AudioStreamer:
                 if source_sample_rate > self.sample_rate:
                     step = int(source_sample_rate / self.sample_rate)
                     audio_f32 = audio_f32[::step]
+                # Apply modest gain to boost low‑volume signals (capped to [-1, 1])
+                gain = 2.0
+                audio_f32 = np.clip(audio_f32 * gain, -1.0, 1.0)
                 self.audio_queue.put(audio_f32)
             except Exception as e:
                 print(f"  Audio callback error: {e}")
@@ -119,34 +121,24 @@ class AudioStreamer:
         self.is_running = True
         opened = 0
 
-        print("Starting audio capture...")
+        print("Starting audio capture (system audio only)...")
 
-        # 1. System audio loopback (catches meeting audio sent to earbuds/speakers)
+        # System audio loopback only — captures everything Windows plays
+        # (YouTube, movies, Meet/Zoom/Teams calls, music, etc.)
         loopback = self._find_best_loopback()
         if loopback:
             s = self._open_stream(loopback, is_input=True)
             if s:
                 self.streams.append(s)
                 opened += 1
-                print(f"  [OK] Loopback stream opened")
+                print(f"  [OK] System audio (loopback) stream opened")
         else:
             print("  [WARN] No loopback device found — system audio will not be captured.")
-
-        # 2. Microphone (catches the user's own speech and nearby audio)
-        mic = self._find_default_microphone()
-        if mic:
-            s = self._open_stream(mic, is_input=True)
-            if s:
-                self.streams.append(s)
-                opened += 1
-                print(f"  [OK] Microphone stream opened")
-        else:
-            print("  [WARN] No microphone found.")
 
         if opened == 0:
             print("[ERROR] No audio sources could be opened!")
         else:
-            print(f"  Capturing from {opened} audio source(s).")
+            print(f"  Capturing system audio from {opened} source(s).")
 
     def stop(self):
         self.is_running = False
