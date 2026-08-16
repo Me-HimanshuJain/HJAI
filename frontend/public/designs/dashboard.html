@@ -3,367 +3,385 @@
 <html class="dark" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>HJAI — Neural Intelligence Platform</title>
+<title>HJAI Assistant Dashboard</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap" rel="stylesheet"/>
-<style>
-  .material-symbols-outlined {
-    font-family: 'Material Symbols Outlined';
-    font-weight: normal; font-style: normal; font-size: 24px;
-    line-height: 1; letter-spacing: normal; text-transform: none;
-    display: inline-block; white-space: nowrap; word-wrap: normal;
-    direction: ltr; -webkit-font-smoothing: antialiased;
-  }
-  .glass-panel {
-    background: rgba(255,255,255,0.04);
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.1);
-  }
-  .glass-card {
-    background: rgba(255,255,255,0.04);
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.12);
-  }
-  .glass-popover {
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255,255,255,0.2);
-  }
-  .glow-blue-subtle { box-shadow: 0 0 15px rgba(37,99,235,0.1); }
-  .glow-active { box-shadow: 0 0 15px rgba(37,99,235,0.4); }
-  .text-glow { text-shadow: 0 0 10px rgba(180,197,255,0.5); }
-  @keyframes pulse-border {
-    0%,100% { border-color: rgba(37,99,235,0.2); box-shadow: 0 0 5px rgba(37,99,235,0.1); }
-    50% { border-color: rgba(37,99,235,0.8); box-shadow: 0 0 20px rgba(37,99,235,0.4); }
-  }
-  .animate-pulse-border { animation: pulse-border 2s infinite; }
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-  .shimmer-text {
-    background: linear-gradient(90deg, rgba(180,197,255,0.5) 25%, rgba(255,255,255,1) 50%, rgba(180,197,255,0.5) 75%);
-    background-size: 200% auto; color: transparent;
-    -webkit-background-clip: text; background-clip: text;
-    animation: shimmer 2s linear infinite;
-  }
-  @keyframes pulse-led {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37,99,235,0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(37,99,235,0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37,99,235,0); }
-  }
-  .led-pulse { animation: pulse-led 2s infinite; }
-  .bg-circuit {
-    background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
-    background-size: 20px 20px;
-  }
-  /* History Panel */
-  #historyPanel {
-    position: fixed; top: 64px; right: 0; width: 320px;
-    height: calc(100vh - 64px); z-index: 100;
-    background: rgba(17,19,27,0.95);
-    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-    border-left: 1px solid rgba(255,255,255,0.1);
-    transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
-    display: flex; flex-direction: column;
-  }
-  #historyPanel.open { transform: translateX(0); }
-  .history-item {
-    padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05);
-    cursor: pointer; transition: background 0.2s;
-  }
-  .history-item:hover { background: rgba(255,255,255,0.04); }
-  .history-item .title { font-size: 14px; color: #e1e2ed; font-weight: 500;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .history-item .meta { font-size: 11px; color: #8d90a0; margin-top: 3px; }
-  .nav-active {
-    background: rgba(37,99,235,0.15) !important;
-    color: #b4c5ff !important;
-    border-right: 2px solid #2563eb;
-  }
-  /* Custom scrollbar */
-  .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-  .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 4px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-  /* Chat bubbles */
-  .user-bubble {
-    background: rgba(37,99,235,0.12); border: 1px solid rgba(37,99,235,0.25);
-    color: #e1e2ed; padding: 12px 16px; border-radius: 18px 18px 4px 18px;
-    max-width: 80%; font-size: 15px; line-height: 1.5;
-  }
-  .ai-bubble {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #e1e2ed; padding: 16px 20px; border-radius: 4px 18px 18px 18px;
-    max-width: 90%; font-size: 15px; line-height: 1.6;
-  }
-  /* Settings panel */
-  #settingsPanel {
-    position: fixed; top: 64px; right: 0; width: 320px;
-    height: calc(100vh - 64px); z-index: 100;
-    background: rgba(17,19,27,0.97);
-    backdrop-filter: blur(24px); border-left: 1px solid rgba(255,255,255,0.1);
-    transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
-    display: flex; flex-direction: column;
-  }
-  #settingsPanel.open { transform: translateX(0); }
-  .toggle-track {
-    width: 42px; height: 24px; background: #434655; border-radius: 12px;
-    position: relative; cursor: pointer; transition: background 0.2s;
-  }
-  .toggle-track.on { background: #2563eb; }
-  .toggle-thumb {
-    width: 18px; height: 18px; background: white; border-radius: 50%;
-    position: absolute; top: 3px; left: 3px; transition: left 0.2s;
-  }
-  .toggle-track.on .toggle-thumb { left: 21px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .animate-spin { animation: spin 1s linear infinite; }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Outfit:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
-  tailwind.config = {
-    darkMode: "class",
-    theme: {
-      extend: {
-        colors: {
-          "surface": "#11131b", "surface-container-lowest": "#0c0e16",
-          "surface-container-low": "#191b23", "surface-container": "#1d1f27",
-          "surface-container-high": "#282a32", "surface-container-highest": "#32343d",
-          "surface-variant": "#32343d", "surface-glass": "rgba(255,255,255,0.05)",
-          "border-glass": "rgba(255,255,255,0.1)", "glow-blue": "rgba(37,99,235,0.4)",
-          "on-surface": "#e1e2ed", "on-surface-variant": "#c3c6d7",
-          "on-surface-high": "#ffffff", "on-surface-muted": "#8d90a0",
-          "primary": "#b4c5ff", "primary-container": "#2563eb",
-          "on-primary": "#002a78", "on-primary-container": "#eeefff",
-          "secondary": "#c0c5df", "secondary-container": "#40465b",
-          "tertiary": "#ffb596", "tertiary-container": "#bc4800",
-          "outline": "#8d90a0", "outline-variant": "#434655",
-          "background": "#11131b",
-        }
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary": "#00363d",
+                    "tertiary-fixed-dim": "#f3bf26",
+                    "on-tertiary": "#3e2e00",
+                    "secondary-fixed": "#ffddb4",
+                    "surface": "#10131c",
+                    "on-surface-variant": "#bac9cc",
+                    "surface-container-lowest": "#0a0e16",
+                    "on-error-container": "#ffdad6",
+                    "tertiary-fixed": "#ffdf96",
+                    "tertiary-container": "#fec931",
+                    "outline-variant": "#3b494c",
+                    "secondary": "#ffcf90",
+                    "muted-steel": "#94A3B8",
+                    "primary-fixed": "#9cf0ff",
+                    "surface-tint": "#00daf3",
+                    "outline": "#849396",
+                    "primary-fixed-dim": "#00daf3",
+                    "on-background": "#e0e2ee",
+                    "background": "#10131c",
+                    "error": "#ffb4ab",
+                    "on-primary-fixed-variant": "#004f58",
+                    "on-secondary-container": "#694300",
+                    "surface-container-high": "#262a33",
+                    "secondary-container": "#ffaa00",
+                    "on-primary-container": "#00626e",
+                    "primary-container": "#00e5ff",
+                    "secondary-fixed-dim": "#ffb952",
+                    "on-secondary-fixed-variant": "#633f00",
+                    "on-secondary": "#452b00",
+                    "primary": "#c3f5ff",
+                    "inverse-surface": "#e0e2ee",
+                    "tertiary": "#ffeac0",
+                    "inverse-primary": "#006875",
+                    "error-container": "#93000a",
+                    "on-primary-fixed": "#001f24",
+                    "surface-container-low": "#181c24",
+                    "inverse-on-surface": "#2d303a",
+                    "surface-container": "#1c2028",
+                    "on-secondary-fixed": "#291800",
+                    "on-tertiary-fixed": "#251a00",
+                    "surface-variant": "#31353e",
+                    "on-tertiary-container": "#6f5500",
+                    "on-tertiary-fixed-variant": "#594400",
+                    "surface-dim": "#10131c",
+                    "glass-panel": "rgba(10, 14, 23, 0.6)",
+                    "surface-bright": "#353943",
+                    "starlight-white": "#F8FAFC",
+                    "on-surface": "#e0e2ee",
+                    "on-error": "#690005",
+                    "surface-container-highest": "#31353e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "1.5rem",
+                    "margin-desktop": "3rem",
+                    "container-max": "1400px",
+                    "margin-mobile": "1rem",
+                    "panel-padding": "2rem"
+            },
+            "fontFamily": {
+                    "body-lg": [
+                            "Geist"
+                    ],
+                    "headline-lg-mobile": [
+                            "Outfit"
+                    ],
+                    "headline-lg": [
+                            "Outfit"
+                    ],
+                    "display-xl": [
+                            "Outfit"
+                    ],
+                    "body-md": [
+                            "Geist"
+                    ],
+                    "technical-sm": [
+                            "JetBrains Mono"
+                    ],
+                    "technical-xs": [
+                            "JetBrains Mono"
+                    ],
+                    "display-lg": [
+                            "Outfit"
+                    ]
+            },
+            "fontSize": {
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg-mobile": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "display-xl": [
+                            "64px",
+                            {
+                                    "lineHeight": "1.1",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "technical-sm": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "technical-xs": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "display-lg": [
+                            "48px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ]
+            }
+    },
+        },
       }
-    }
-  }
-</script>
+    </script>
+<style>
+        body {
+            background-color: #050810;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Neural Background Effect */
+        .neural-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 50%, rgba(0, 218, 243, 0.05) 0%, transparent 60%),
+                        radial-gradient(circle at 80% 20%, rgba(255, 170, 0, 0.03) 0%, transparent 40%);
+            overflow: hidden;
+        }
+
+        .node {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: #00daf3;
+            border-radius: 50%;
+            box-shadow: 0 0 10px 2px rgba(0, 218, 243, 0.5);
+            animation: pulse 4s infinite alternate;
+        }
+
+        .line {
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(0,218,243,0) 0%, rgba(0,218,243,0.2) 50%, rgba(0,218,243,0) 100%);
+            transform-origin: 0 50%;
+            opacity: 0.5;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.3; }
+            100% { transform: scale(1.5); opacity: 0.8; }
+        }
+
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background-color: rgba(10, 14, 23, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 218, 243, 0.2);
+        }
+
+        /* Custom Scrollbar for Chat */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(10, 14, 23, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 218, 243, 0.2);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 218, 243, 0.5);
+        }
+    </style>
 </head>
-<body class="bg-background text-on-surface font-sans flex flex-col overflow-hidden" style="font-family:'Geist',sans-serif;height:100vh;">
-
-<!-- ── Top Nav ─────────────────────────────────────────────────────── -->
-<header class="flex-shrink-0 bg-surface-glass backdrop-blur-md flex justify-between items-center px-8 w-full h-16 z-50 border-b border-border-glass" style="background:rgba(17,19,27,0.9);">
-  <div class="flex items-center gap-3">
-    <span style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.03em;">HJAI</span>
-    <span style="font-size:11px;font-weight:600;letter-spacing:0.05em;color:#b4c5ff;background:rgba(37,99,235,0.15);padding:3px 10px;border-radius:999px;border:1px solid rgba(37,99,235,0.3);">Neural Engine v2.0</span>
-  </div>
-  <div class="flex items-center gap-3">
-    <!-- Settings -->
-    <button id="settingsNavBtn" onclick="togglePanel('settings')" class="p-2 text-on-surface-muted hover:text-primary hover:bg-white/5 transition-colors rounded-full" title="Settings">
-      <span class="material-symbols-outlined" style="font-size:20px;">settings</span>
-    </button>
-    <!-- User avatar -->
-    <div class="w-8 h-8 rounded-full overflow-hidden border border-white/10 cursor-pointer hover:border-primary/50 transition-colors" title="Profile" id="userAvatarBtn">
-      <div style="width:100%;height:100%;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;">
-        <span style="font-size:13px;font-weight:700;color:white;" id="userInitial">H</span>
-      </div>
-    </div>
-  </div>
-</header>
-
-<div class="flex flex-1 overflow-hidden" style="min-height:0;">
-
-<!-- ── Sidebar ─────────────────────────────────────────────────────── -->
-<nav class="flex-shrink-0 flex flex-col py-5 border-r border-border-glass" style="width:200px;background:rgba(17,19,27,0.85);">
-  <div class="flex-1 px-3 space-y-1 overflow-y-auto">
-    <!-- Dashboard (active) -->
-    <a class="flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors nav-active" href="#" style="font-size:14px;text-decoration:none;">
-      <span class="material-symbols-outlined" style="font-size:20px;font-variation-settings:'FILL' 1;">chat</span>
-      <span>AI Chat</span>
-    </a>
-    <!-- History -->
-    <button onclick="togglePanel('history')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-variant/40 transition-colors text-left" style="font-size:14px;background:none;border:none;cursor:pointer;">
-      <span class="material-symbols-outlined" style="font-size:20px;">history</span>
-      <span>History</span>
-    </button>
-    <!-- Settings -->
-    <button onclick="togglePanel('settings')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-variant/40 transition-colors text-left" style="font-size:14px;background:none;border:none;cursor:pointer;">
-      <span class="material-symbols-outlined" style="font-size:20px;">settings</span>
-      <span>Settings</span>
-    </button>
-  </div>
-
-  <!-- Bottom: New Session + User -->
-  <div class="px-3 mt-4 pt-4 border-t border-white/5 space-y-3">
-    <button onclick="newSession()" class="w-full flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition-colors glow-blue-subtle" style="background:#2563eb;color:white;font-size:13px;border:none;cursor:pointer;">
-      <span class="material-symbols-outlined" style="font-size:18px;">add</span>
-      New Session
-    </button>
-    <div class="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer" id="userProfileCard">
-      <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <span style="font-size:13px;font-weight:700;color:white;" id="sidebarInitial">H</span>
-      </div>
-      <div style="overflow:hidden;">
-        <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="sidebarName">Himanshu Jain</div>
-        <div style="font-size:11px;color:#8d90a0;">Pro Plan</div>
-      </div>
-    </div>
-  </div>
+<body class="text-on-surface font-body-md antialiased flex flex-col h-screen">
+<!-- Neural Background Canvas -->
+<div class="neural-bg" id="neural-canvas">
+<!-- JS will populate nodes and lines -->
+</div>
+<!-- TopNavBar (Shared Component) -->
+<header class="bg-glass-panel backdrop-blur-md text-primary-fixed-dim font-headline-lg text-headline-lg docked full-width top-0 sticky border-b border-outline-variant/20 flat no shadows flex justify-between items-center w-full px-gutter h-20 max-w-container-max mx-auto z-50">
+<div id="chatTitle" class="font-display-lg text-display-lg font-bold text-surface-tint tracking-tighter">
+            HJAI
+        </div>
+<nav class="hidden md:flex gap-8">
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300" href="#">Models</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1 hover:text-primary transition-colors duration-300" href="#">Intelligence</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300" href="#">Analytics</a>
 </nav>
+<div class="font-technical-xs text-technical-xs text-muted-steel uppercase tracking-widest px-6 mt-4 mb-2">History</div>
+<div id="historyList" class="flex-1 overflow-y-auto px-2 flex flex-col gap-1 w-full">
+    <div id="historyLoading" class="text-center text-muted-steel py-4"><span class="material-symbols-outlined animate-spin">autorenew</span></div>
+    <div id="historyEmpty" class="text-center text-muted-steel py-4 hidden">No history</div>
+    <div id="historyItems" class="flex flex-col gap-1 w-full"></div>
+</div>
 
-<!-- ── Main Content ────────────────────────────────────────────────── -->
-<main class="flex-1 flex flex-col relative bg-circuit overflow-hidden" style="min-height:0;">
-  <div class="flex-1 flex overflow-hidden" style="gap:12px;padding:12px;min-height:0;">
+<div class="flex items-center gap-4">
+<button class="hover:text-primary transition-colors duration-300">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="hover:text-primary transition-colors duration-300">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img id="userAvatarImg" alt="User intelligence profile" class="w-10 h-10 rounded-full border border-surface-tint/50" data-alt="A small circular avatar placeholder image for a user profile in a highly technical AI dashboard. Dark background with subtle neural cyan glow, 50x50 pixels, high contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdLjjbe7OPkXk2H_Q3FHV6vDsPCY8c1ap-pSN3XuuU_ad48UD0iqDkwUwsVt3pwiE3PmyvCvWGXRR2wS0MmuVA1rBNCUeW2TIhTby3JhsI-Ro_KC3Q-KmsX2ekemkszcvq_gVBeZguqE1g6l3G_HmynV4COg57OpR05dIThUyuXRyUxFKxeUWm7L3ogl2dpLZ3VrO5tQj0cb3zNUfcjnUZjXQYHLG6IH9Enb-COv2ndaJnWFZttg1JkicErIugH5TpISOG0GkUI9Qx"/>
+</div>
+</header>
+<!-- Main Layout -->
+<div class="flex flex-1 overflow-hidden max-w-container-max mx-auto w-full">
+<!-- SideNavBar (Shared Component) -->
+<aside class="hidden md:flex bg-glass-panel backdrop-blur-xl text-secondary font-technical-sm text-technical-sm docked left-0 h-screen w-72 border-r border-outline-variant/20 flat no shadows flex flex-col h-full overflow-y-auto py-panel-padding z-40">
+<div class="px-6 mb-8 flex items-center gap-4">
+<img alt="System Administrator" class="w-10 h-10 rounded-lg border border-secondary/30" data-alt="A futuristic system administrator avatar icon. Glowing neon accents against a dark slate background, suggesting high-level system access. 40x40 pixels." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGPGyDEUy2iHYSTmNezh2NOTokM1oPxUsrHo-u0mADrQVsb1QB8eUrv2lkFzrgOj5xGPY82OAqlMr6EvynCsO1cx-g_9-JWM9yHHWXwvdUp3ZGexE4GwuclrkbjV8hAsDYOUO3eBFVtAiAqveAaR6UWQ_7fKpDQ9vdiibeHnrUaZQq1Y95KDnJOWQYYpYjQ4Pr-WaZ3B7vUk7RDEURluc58kk0XtV13ASNVby4dEa5kVjXZ4nrgd7FGk48ZIMzILZ5IAuP-z3BeXCU"/>
+<div>
+<h2 id="sidebarName" class="font-bold text-on-surface">HJAI Core</h2>
+<p id="sidebarRole" class="text-muted-steel text-xs">Protocol v4.2.0</p>
+</div>
+</div>
+<button onclick="newSession()" class="mx-6 mb-8 bg-surface-container-high border border-outline-variant/30 text-starlight-white py-2 px-4 rounded hover:bg-surface-variant/50 transition-all text-left flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                New Neural Session
+            </button>
+<div class="font-technical-xs text-technical-xs text-muted-steel uppercase tracking-widest px-6 mb-2">Modules</div>
+<nav class="flex-1 flex flex-col gap-1">
+<a class="bg-secondary-container/10 text-secondary border-l-4 border-secondary px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
+<span class="material-symbols-outlined">psychology</span>
+                    Neural Feed
+                </a>
+<a class="text-on-surface-variant px-4 py-3 hover:bg-surface-variant/30 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
+<span class="material-symbols-outlined">memory</span>
+                    Active Core
+                </a>
+<a class="text-on-surface-variant px-4 py-3 hover:bg-surface-variant/30 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+                    Reasoning Log
+                </a>
+<a class="text-on-surface-variant px-4 py-3 hover:bg-surface-variant/30 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
+<span class="material-symbols-outlined">hub</span>
+                    Synapse Map
+                </a>
+<a class="text-on-surface-variant px-4 py-3 hover:bg-surface-variant/30 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
+<span class="material-symbols-outlined">history</span>
+                    Archives
+                </a>
+</nav>
+<div class="font-technical-xs text-technical-xs text-muted-steel uppercase tracking-widest px-6 mt-4 mb-2">History</div>
+<div id="historyList" class="flex-1 overflow-y-auto px-2 flex flex-col gap-1 w-full">
+    <div id="historyLoading" class="text-center text-muted-steel py-4"><span class="material-symbols-outlined animate-spin">autorenew</span></div>
+    <div id="historyEmpty" class="text-center text-muted-steel py-4 hidden">No history</div>
+    <div id="historyItems" class="flex flex-col gap-1 w-full"></div>
+</div>
 
-    <!-- Left: Chat (55%) -->
-    <div class="flex flex-col glass-panel rounded-xl overflow-hidden" style="flex:1;min-height:0;">
-      <!-- Chat header -->
-      <div class="flex items-center justify-between px-4 py-3 border-b border-white/10" style="background:rgba(0,0,0,0.2);">
-        <div class="flex items-center gap-2.5">
-          <div class="w-2.5 h-2.5 rounded-full bg-primary led-pulse"></div>
-          <span style="font-size:16px;font-weight:600;color:#fff;" id="chatTitle">Neural Engine</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span style="font-size:12px;color:#8d90a0;" id="turnCount">0 turns</span>
-        </div>
-      </div>
-
-      <!-- Messages area -->
-      <div class="flex-1 overflow-y-auto custom-scrollbar" style="padding:20px;display:flex;flex-direction:column;gap:16px;min-height:0;" id="messagesArea">
-        <!-- Welcome state -->
-        <div id="welcomeState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;gap:16px;">
-          <div style="width:64px;height:64px;border-radius:50%;background:rgba(37,99,235,0.15);border:1px solid rgba(37,99,235,0.3);display:flex;align-items:center;justify-content:center;">
-            <span class="material-symbols-outlined" style="font-size:32px;color:#b4c5ff;font-variation-settings:'FILL' 1;">psychology</span>
-          </div>
-          <div>
-            <p style="font-size:18px;font-weight:600;color:#e1e2ed;margin:0;">Welcome to HJAI</p>
-            <p style="font-size:14px;color:#8d90a0;margin:6px 0 0;">Ask me anything. I'm powered by Ollama + your local models.</p>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px;">
-            <button onclick="fillSuggestion(this)" class="suggestion-chip" style="padding:8px 14px;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.25);border-radius:999px;color:#b4c5ff;font-size:13px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(37,99,235,0.2)'" onmouseout="this.style.background='rgba(37,99,235,0.1)'">Explain a concept</button>
-            <button onclick="fillSuggestion(this)" class="suggestion-chip" style="padding:8px 14px;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.25);border-radius:999px;color:#b4c5ff;font-size:13px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(37,99,235,0.2)'" onmouseout="this.style.background='rgba(37,99,235,0.1)'">Write some code</button>
-            <button onclick="fillSuggestion(this)" class="suggestion-chip" style="padding:8px 14px;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.25);border-radius:999px;color:#b4c5ff;font-size:13px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(37,99,235,0.2)'" onmouseout="this.style.background='rgba(37,99,235,0.1)'">Analyze data</button>
-            <button onclick="fillSuggestion(this)" class="suggestion-chip" style="padding:8px 14px;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.25);border-radius:999px;color:#b4c5ff;font-size:13px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(37,99,235,0.2)'" onmouseout="this.style.background='rgba(37,99,235,0.1)'">Summarize text</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Chat input -->
-      <div class="flex-shrink-0 border-t border-white/10 p-3" style="background:rgba(0,0,0,0.2);">
-        <div class="flex items-end gap-2 rounded-xl border border-white/10 p-2 focus-within:border-primary/50 transition-all" style="background:rgba(30,32,45,0.8);">
-          <label for="fileInput" class="p-2 text-on-surface-muted hover:text-primary transition-colors rounded-lg cursor-pointer" title="Attach file">
-            <span class="material-symbols-outlined" style="font-size:20px;">attach_file</span>
-            <input id="fileInput" type="file" style="display:none;" onchange="handleFileAttach(this)"/>
-          </label>
-          <textarea id="chatInput" class="flex-1 bg-transparent border-none focus:ring-0 text-on-surface resize-none py-2 px-1" style="min-height:40px;max-height:120px;font-size:14px;font-family:'Geist',sans-serif;color:#e1e2ed;outline:none;" placeholder="Message Neural Engine..." rows="1"
-            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"
-            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
-          <button onclick="sendMessage()" class="p-2 rounded-lg transition-colors flex-shrink-0" style="background:rgba(37,99,235,0.2);color:#b4c5ff;" onmouseover="this.style.background='#2563eb';this.style.color='white'" onmouseout="this.style.background='rgba(37,99,235,0.2)';this.style.color='#b4c5ff'" title="Send">
-            <span class="material-symbols-outlined" style="font-size:20px;">send</span>
-          </button>
-        </div>
-        <div style="text-align:center;font-size:11px;color:rgba(141,144,160,0.5);margin-top:6px;">Enter to send · Shift+Enter for new line</div>
-      </div>
-  </div>
+<div class="mt-auto pt-4 border-t border-outline-variant/20">
+<a class="text-on-surface-variant px-4 py-2 hover:bg-surface-variant/30 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-sm">sensors</span>
+                    System Status
+                </a>
+<a class="text-on-surface-variant px-4 py-2 hover:bg-surface-variant/30 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-sm">terminal</span>
+                    Diagnostic
+                </a>
+</div>
+</aside>
+<!-- Main Chat Area -->
+<main class="flex-1 flex flex-col relative z-30 p-4 md:p-6 gap-6 h-full overflow-hidden">
+<!-- Chat Messages (Scrollable) -->
+<div class="flex-1 overflow-y-auto flex flex-col gap-6 pr-2" id="messagesArea">
+</div>
+<!-- Chat Input Area -->
+<div class="mt-auto glass-panel p-2 rounded-xl flex items-end gap-2 border border-surface-tint/20 bg-surface-container-lowest/80">
+<button class="p-3 text-muted-steel hover:text-primary transition-colors rounded-lg hover:bg-surface-variant/30">
+<span class="material-symbols-outlined">add_circle</span>
+</button>
+<textarea id="chatInput" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'" class="flex-1 bg-transparent border-none focus:ring-0 text-on-surface font-body-md resize-none max-h-32 min-h-[44px] py-3 placeholder:text-outline" placeholder="Input command sequence..." rows="1"></textarea>
+<button onclick="sendMessage()" class="p-3 bg-secondary-container text-on-secondary-container hover:brightness-110 active:-translate-y-[1px] transition-all rounded-lg flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
 </main>
 </div>
+<script>
+        // Simple script to generate background nodes
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('neural-canvas');
+            const numNodes = 20;
+            const nodes = [];
 
-<!-- ── History Panel ───────────────────────────────────────────────── -->
-<div id="historyPanel">
-  <div style="padding:16px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;">
-    <div class="flex items-center gap-2">
-      <span class="material-symbols-outlined" style="font-size:20px;color:#b4c5ff;">history</span>
-      <span style="font-size:15px;font-weight:600;color:#fff;">Chat History</span>
-    </div>
-    <button onclick="togglePanel('history')" style="background:none;border:none;cursor:pointer;color:#8d90a0;padding:4px;" class="hover:text-white transition-colors">
-      <span class="material-symbols-outlined" style="font-size:20px;">close</span>
-    </button>
-  </div>
-  <div id="historyList" class="flex-1 overflow-y-auto custom-scrollbar" style="padding:8px 0;">
-    <div id="historyLoading" style="display:flex;align-items:center;justify-content:center;padding:40px;flex-direction:column;gap:12px;">
-      <span class="material-symbols-outlined animate-spin" style="font-size:28px;color:#2563eb;">autorenew</span>
-      <span style="font-size:13px;color:#8d90a0;">Loading history...</span>
-    </div>
-    <div id="historyEmpty" style="display:none;text-align:center;padding:40px 20px;">
-      <span class="material-symbols-outlined" style="font-size:36px;color:#434655;">chat_bubble_outline</span>
-      <p style="font-size:13px;color:#8d90a0;margin-top:12px;">No chat history yet.<br/>Start a conversation!</p>
-    </div>
-    <div id="historyItems"></div>
-  </div>
-  <div style="padding:12px;border-top:1px solid rgba(255,255,255,0.08);">
-    <button onclick="clearHistory()" style="width:100%;padding:8px;background:rgba(147,0,10,0.15);border:1px solid rgba(255,180,171,0.2);border-radius:8px;color:#ffb4ab;font-size:13px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(147,0,10,0.3)'" onmouseout="this.style.background='rgba(147,0,10,0.15)'">
-      Clear All History
-    </button>
-  </div>
-</div>
+            // Create nodes
+            for (let i = 0; i < numNodes; i++) {
+                const node = document.createElement('div');
+                node.className = 'node';
+                node.style.left = `${Math.random() * 100}vw`;
+                node.style.top = `${Math.random() * 100}vh`;
+                node.style.animationDelay = `${Math.random() * 2}s`;
+                canvas.appendChild(node);
+                nodes.push(node);
+            }
 
-<!-- ── Settings Panel ─────────────────────────────────────────────── -->
-<div id="settingsPanel">
-  <div style="padding:16px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;">
-    <div class="flex items-center gap-2">
-      <span class="material-symbols-outlined" style="font-size:20px;color:#b4c5ff;">settings</span>
-      <span style="font-size:15px;font-weight:600;color:#fff;">Settings</span>
-    </div>
-    <button onclick="togglePanel('settings')" style="background:none;border:none;cursor:pointer;color:#8d90a0;padding:4px;" class="hover:text-white transition-colors">
-      <span class="material-symbols-outlined" style="font-size:20px;">close</span>
-    </button>
-  </div>
-  <div class="flex-1 overflow-y-auto custom-scrollbar" style="padding:16px;">
-    <div style="display:flex;flex-direction:column;gap:20px;">
-      <!-- Model select -->
-      <div>
-        <label style="font-size:11px;color:#8d90a0;letter-spacing:0.05em;text-transform:uppercase;display:block;margin-bottom:8px;">Active Model</label>
-        <select id="modelSelect" style="width:100%;background:#1d1f27;border:1px solid #434655;border-radius:8px;color:#e1e2ed;padding:8px 12px;font-size:14px;outline:none;">
-          <option value="llama3.3">Llama 3.3 70B</option>
-          <option value="llama3.1">Llama 3.1 8B</option>
-          <option value="mistral">Mistral 7B</option>
-          <option value="codellama">Code Llama</option>
-          <option value="gemma3">Gemma 3</option>
-        </select>
-      </div>
-      <!-- Toggles -->
-      <div>
-        <label style="font-size:11px;color:#8d90a0;letter-spacing:0.05em;text-transform:uppercase;display:block;margin-bottom:12px;">Interface</label>
-        <div style="display:flex;flex-direction:column;gap:14px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:14px;color:#e1e2ed;">Neural Visualization</span>
-            <div class="toggle-track on" onclick="this.classList.toggle('on');toggleViz(this.classList.contains('on'))"><div class="toggle-thumb"></div></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:14px;color:#e1e2ed;">Streaming Responses</span>
-            <div class="toggle-track on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:14px;color:#e1e2ed;">Show Reasoning Steps</span>
-            <div class="toggle-track" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
-          </div>
-        </div>
-      </div>
-      <!-- Divider -->
-      <div style="height:1px;background:rgba(255,255,255,0.08);"></div>
-      <!-- Account -->
-      <div>
-        <label style="font-size:11px;color:#8d90a0;letter-spacing:0.05em;text-transform:uppercase;display:block;margin-bottom:12px;">Account</label>
-        <div style="background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <span style="font-size:14px;font-weight:700;color:white;" id="settingsInitial">H</span>
-          </div>
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#fff;" id="settingsName">Himanshu Jain</div>
-            <div style="font-size:12px;color:#8d90a0;" id="settingsEmail">himanshu@hjai.ai</div>
-          </div>
-        </div>
-        <button onclick="signOut()" style="width:100%;padding:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#c3c6d7;font-size:13px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
-          <span class="material-symbols-outlined" style="font-size:16px;">logout</span>
-          Sign Out
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Backdrop -->
-<div id="panelBackdrop" onclick="closePanels()" style="display:none;position:fixed;inset:0;z-index:99;background:rgba(0,0,0,0.3);"></div>
-
+            // Create random lines between nodes
+            for (let i = 0; i < 15; i++) {
+                const n1 = nodes[Math.floor(Math.random() * nodes.length)];
+                const n2 = nodes[Math.floor(Math.random() * nodes.length)];
+                
+                const line = document.createElement('div');
+                line.className = 'line';
+                
+                // Extremely simplified line placement just for visual flavor
+                line.style.left = n1.style.left;
+                line.style.top = n1.style.top;
+                line.style.width = `${Math.random() * 200 + 50}px`;
+                line.style.transform = `rotate(${Math.random() * 360}deg)`;
+                
+                canvas.appendChild(line);
+            }
+        });
+    </script>
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 const API = 'http://localhost:8000';
@@ -387,30 +405,9 @@ let chatHistory = []; // local message log for current session
 })();
 
 // ── Panel Toggle ───────────────────────────────────────────────────────────
-function togglePanel(which) {
-  const hp = document.getElementById('historyPanel');
-  const sp = document.getElementById('settingsPanel');
-  const bd = document.getElementById('panelBackdrop');
+function togglePanel(which) {}
 
-  if (which === 'history') {
-    const isOpen = hp.classList.contains('open');
-    hp.classList.toggle('open');
-    sp.classList.remove('open');
-    bd.style.display = isOpen ? 'none' : 'block';
-    if (!isOpen) loadHistory();
-  } else {
-    const isOpen = sp.classList.contains('open');
-    sp.classList.toggle('open');
-    hp.classList.remove('open');
-    bd.style.display = isOpen ? 'none' : 'block';
-  }
-}
-
-function closePanels() {
-  document.getElementById('historyPanel').classList.remove('open');
-  document.getElementById('settingsPanel').classList.remove('open');
-  document.getElementById('panelBackdrop').style.display = 'none';
-}
+function closePanels() {}
 
 // ── Load History from API ──────────────────────────────────────────────────
 async function loadHistory() {
@@ -458,7 +455,7 @@ async function loadHistory() {
   allHistory.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
   allHistory.forEach(session => {
     const div = document.createElement('div');
-    div.className = 'history-item';
+    div.className = 'text-on-surface-variant px-4 py-3 hover:bg-surface-variant/30 flex flex-col gap-1 hover:bg-surface-container-high transition-all duration-200 cursor-pointer rounded-lg';
     const ts = new Date(session.timestamp);
     const relTime = formatRelTime(ts);
     div.innerHTML = `
@@ -558,7 +555,7 @@ async function sendMessage() {
   const area = document.getElementById('messagesArea');
   const wrapper = document.createElement('div');
   wrapper.style.cssText = 'display:flex;justify-content:flex-start;';
-  wrapper.innerHTML = `<div class="ai-bubble">
+  wrapper.innerHTML = `<div class="self-start w-full max-w-[95%] glass-panel rounded-2xl rounded-tl-sm p-5 border border-surface-tint/30 flex flex-col gap-4">
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
       <span class="material-symbols-outlined" style="font-size:16px;color:#b4c5ff;font-variation-settings:'FILL' 1;">psychology</span>
       <span style="font-size:11px;color:#b4c5ff;letter-spacing:0.05em;text-transform:uppercase;font-weight:600;">Neural Engine</span>
@@ -658,7 +655,8 @@ function appendUserMsg(text) {
   const area = document.getElementById('messagesArea');
   const div = document.createElement('div');
   div.style.cssText = 'display:flex;justify-content:flex-end;';
-  div.innerHTML = `<div class="user-bubble">${escHtml(text).replace(/\n/g,'<br/>')}</div>`;
+  div.innerHTML = `<div class="self-end max-w-[80%] md:max-w-[70%] glass-panel rounded-2xl rounded-tr-sm p-4 border-r-0 border-l border-t border-b border-surface-tint/10 bg-surface-container/50">
+<div class="text-on-surface leading-relaxed">${escHtml(text).replace(/\n/g,'<br/>')}</div></div>`;
   area.appendChild(div);
   area.scrollTop = area.scrollHeight;
 }
@@ -673,7 +671,7 @@ function appendAIMsg(text) {
     .replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:13px;">$1</code>')
     .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#fff;">$1</strong>')
     .replace(/\n/g, '<br/>');
-  div.innerHTML = `<div class="ai-bubble">
+  div.innerHTML = `<div class="self-start w-full max-w-[95%] glass-panel rounded-2xl rounded-tl-sm p-5 border border-surface-tint/30 flex flex-col gap-4">
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
       <span class="material-symbols-outlined" style="font-size:16px;color:#b4c5ff;font-variation-settings:'FILL' 1;">psychology</span>
       <span style="font-size:11px;color:#b4c5ff;letter-spacing:0.05em;text-transform:uppercase;font-weight:600;">Neural Engine</span>
@@ -690,7 +688,7 @@ function appendThinking() {
   const div = document.createElement('div');
   div.id = id;
   div.style.cssText = 'display:flex;justify-content:flex-start;';
-  div.innerHTML = `<div class="ai-bubble" style="display:flex;align-items:center;gap:10px;">
+  div.innerHTML = `<div class="self-start w-full max-w-[95%] glass-panel rounded-2xl rounded-tl-sm p-5 border border-surface-tint/30 flex flex-col gap-4" style="display:flex;align-items:center;gap:10px;">
     <span class="material-symbols-outlined animate-spin" style="font-size:18px;color:#2563eb;">autorenew</span>
     <span class="shimmer-text" style="font-size:13px;letter-spacing:0.05em;font-weight:600;">Neural Agent thinking...</span>
   </div>`;
@@ -717,13 +715,13 @@ function newSession() {
   updateTurnCount();
   document.getElementById('chatTitle').textContent = 'Neural Engine';
   const area = document.getElementById('messagesArea');
-  area.innerHTML = `<div id="welcomeState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;gap:16px;">
-    <div style="width:64px;height:64px;border-radius:50%;background:rgba(37,99,235,0.15);border:1px solid rgba(37,99,235,0.3);display:flex;align-items:center;justify-content:center;">
-      <span class="material-symbols-outlined" style="font-size:32px;color:#b4c5ff;font-variation-settings:'FILL' 1;">psychology</span>
+  area.innerHTML = `<div id="welcomeState" class="flex flex-col items-center justify-center h-full text-center gap-6">
+    <div class="w-16 h-16 rounded-full bg-surface-tint/10 border border-surface-tint/30 flex items-center justify-center">
+      <span class="material-symbols-outlined text-4xl text-surface-tint">psychology</span>
     </div>
     <div>
-      <p style="font-size:18px;font-weight:600;color:#e1e2ed;margin:0;">New Session Started</p>
-      <p style="font-size:14px;color:#8d90a0;margin:6px 0 0;">Ask me anything.</p>
+      <p class="text-xl font-headline-lg font-bold text-on-surface m-0">Neural Session Started</p>
+      <p class="text-sm font-technical-sm text-muted-steel mt-2">Standing by for input sequence.</p>
     </div>
   </div>`;
 }
