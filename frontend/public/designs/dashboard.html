@@ -251,24 +251,12 @@
 <div id="chatTitle" class="font-display-lg text-display-lg font-bold text-surface-tint tracking-tighter">
             HJAI
         </div>
-<nav class="hidden md:flex gap-8">
-<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300" href="#">Models</a>
-<a class="text-primary font-bold border-b-2 border-primary pb-1 hover:text-primary transition-colors duration-300" href="#">Intelligence</a>
-<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300" href="#">Analytics</a>
-</nav>
-<div class="font-technical-xs text-technical-xs text-muted-steel uppercase tracking-widest px-6 mt-4 mb-2">History</div>
-<div id="historyList" class="flex-1 overflow-y-auto px-2 flex flex-col gap-1 w-full">
-    <div id="historyLoading" class="text-center text-muted-steel py-4"><span class="material-symbols-outlined animate-spin">autorenew</span></div>
-    <div id="historyEmpty" class="text-center text-muted-steel py-4 hidden">No history</div>
-    <div id="historyItems" class="flex flex-col gap-1 w-full"></div>
-</div>
+<div class="hidden md:flex gap-8 flex-1"></div>
 
 <div class="flex items-center gap-4">
-<button class="hover:text-primary transition-colors duration-300">
-<span class="material-symbols-outlined">notifications</span>
-</button>
-<button class="hover:text-primary transition-colors duration-300">
-<span class="material-symbols-outlined">settings</span>
+<button onclick="signOut()" class="text-on-surface-variant hover:text-primary transition-colors duration-300 flex items-center gap-2 text-sm font-medium mr-2" title="Sign Out">
+  <span class="material-symbols-outlined text-lg">logout</span>
+  <span class="hidden md:inline">Sign Out</span>
 </button>
 <img id="userAvatarImg" alt="User intelligence profile" class="w-10 h-10 rounded-full border border-surface-tint/50" data-alt="A small circular avatar placeholder image for a user profile in a highly technical AI dashboard. Dark background with subtle neural cyan glow, 50x50 pixels, high contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdLjjbe7OPkXk2H_Q3FHV6vDsPCY8c1ap-pSN3XuuU_ad48UD0iqDkwUwsVt3pwiE3PmyvCvWGXRR2wS0MmuVA1rBNCUeW2TIhTby3JhsI-Ro_KC3Q-KmsX2ekemkszcvq_gVBeZguqE1g6l3G_HmynV4COg57OpR05dIThUyuXRyUxFKxeUWm7L3ogl2dpLZ3VrO5tQj0cb3zNUfcjnUZjXQYHLG6IH9Enb-COv2ndaJnWFZttg1JkicErIugH5TpISOG0GkUI9Qx"/>
 </div>
@@ -288,29 +276,7 @@
 <span class="material-symbols-outlined text-sm">add</span>
                 New Neural Session
             </button>
-<div class="font-technical-xs text-technical-xs text-muted-steel uppercase tracking-widest px-6 mb-2">Modules</div>
-<nav class="flex-1 flex flex-col gap-1">
-<a class="bg-secondary-container/10 text-secondary border-l-4 border-secondary px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
-<span class="material-symbols-outlined">psychology</span>
-                    Neural Feed
-                </a>
-<a class="text-on-surface-variant px-4 py-3 hover:bg-surface-variant/30 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
-<span class="material-symbols-outlined">memory</span>
-                    Active Core
-                </a>
-<a class="text-on-surface-variant px-4 py-3 hover:bg-surface-variant/30 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
-<span class="material-symbols-outlined">account_tree</span>
-                    Reasoning Log
-                </a>
-<a class="text-on-surface-variant px-4 py-3 hover:bg-surface-variant/30 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
-<span class="material-symbols-outlined">hub</span>
-                    Synapse Map
-                </a>
-<a class="text-on-surface-variant px-4 py-3 hover:bg-surface-variant/30 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
-<span class="material-symbols-outlined">history</span>
-                    Archives
-                </a>
-</nav>
+<!-- Modules removed -->
 <div class="font-technical-xs text-technical-xs text-muted-steel uppercase tracking-widest px-6 mt-4 mb-2">History</div>
 <div id="historyList" class="flex-1 overflow-y-auto px-2 flex flex-col gap-1 w-full">
     <div id="historyLoading" class="text-center text-muted-steel py-4"><span class="material-symbols-outlined animate-spin">autorenew</span></div>
@@ -318,16 +284,7 @@
     <div id="historyItems" class="flex flex-col gap-1 w-full"></div>
 </div>
 
-<div class="mt-auto pt-4 border-t border-outline-variant/20">
-<a class="text-on-surface-variant px-4 py-2 hover:bg-surface-variant/30 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
-<span class="material-symbols-outlined text-sm">sensors</span>
-                    System Status
-                </a>
-<a class="text-on-surface-variant px-4 py-2 hover:bg-surface-variant/30 flex items-center gap-3 hover:bg-surface-container-high transition-all duration-200" href="#">
-<span class="material-symbols-outlined text-sm">terminal</span>
-                    Diagnostic
-                </a>
-</div>
+<!-- System status removed -->
 </aside>
 <!-- Main Chat Area -->
 <main class="flex-1 flex flex-col relative z-30 p-4 md:p-6 gap-6 h-full overflow-hidden">
@@ -393,15 +350,26 @@ let chatHistory = []; // local message log for current session
 
 // ── Init ───────────────────────────────────────────────────────────────────
 (function init() {
-  // Populate user info
   const name = user.name || 'User';
   const initial = name.charAt(0).toUpperCase();
-  document.getElementById('userInitial').textContent = initial;
-  document.getElementById('sidebarInitial').textContent = initial;
-  document.getElementById('sidebarName').textContent = name;
-  document.getElementById('settingsInitial').textContent = initial;
-  document.getElementById('settingsName').textContent = name;
-  document.getElementById('settingsEmail').textContent = user.email || '';
+  
+  const els = {
+    userInitial: document.getElementById('userInitial'),
+    sidebarInitial: document.getElementById('sidebarInitial'),
+    sidebarName: document.getElementById('sidebarName'),
+    settingsInitial: document.getElementById('settingsInitial'),
+    settingsName: document.getElementById('settingsName'),
+    settingsEmail: document.getElementById('settingsEmail')
+  };
+
+  if (els.userInitial) els.userInitial.textContent = initial;
+  if (els.sidebarInitial) els.sidebarInitial.textContent = initial;
+  if (els.sidebarName) els.sidebarName.textContent = name;
+  if (els.settingsInitial) els.settingsInitial.textContent = initial;
+  if (els.settingsName) els.settingsName.textContent = name;
+  if (els.settingsEmail) els.settingsEmail.textContent = user.email || '';
+
+  loadHistory();
 })();
 
 // ── Panel Toggle ───────────────────────────────────────────────────────────
@@ -487,9 +455,10 @@ function loadSession(session) {
   closePanels();
   // If session has messages, display them
   const area = document.getElementById('messagesArea');
-  document.getElementById('welcomeState').remove();
+  const ws = document.getElementById('welcomeState');
+  if (ws) ws.remove();
   area.innerHTML = '';
-  chatTitle.textContent = session.title;
+  // Removed chatTitle overwrite to keep HJAI permanent
   if (session.messages && session.messages.length) {
     session.messages.forEach(m => {
       if (m.role === 'user') appendUserMsg(m.content);
@@ -548,23 +517,7 @@ async function sendMessage() {
   turnCount++;
   updateTurnCount();
 
-  removeThinking(appendThinking()); // show briefly then replace with streaming bubble
-
-  // Create the AI bubble immediately (will be filled by stream)
-  const bubbleId = 'ai_bubble_' + Date.now();
-  const area = document.getElementById('messagesArea');
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'display:flex;justify-content:flex-start;';
-  wrapper.innerHTML = `<div class="self-start w-full max-w-[95%] glass-panel rounded-2xl rounded-tl-sm p-5 border border-surface-tint/30 flex flex-col gap-4">
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
-      <span class="material-symbols-outlined" style="font-size:16px;color:#b4c5ff;font-variation-settings:'FILL' 1;">psychology</span>
-      <span style="font-size:11px;color:#b4c5ff;letter-spacing:0.05em;text-transform:uppercase;font-weight:600;">Neural Engine</span>
-      <span id="${bubbleId}_spin" class="animate-spin material-symbols-outlined" style="font-size:14px;color:#2563eb;">autorenew</span>
-    </div>
-    <div id="${bubbleId}" style="white-space:pre-wrap;word-break:break-word;min-height:20px;"></div>
-  </div>`;
-  area.appendChild(wrapper);
-  area.scrollTop = area.scrollHeight;
+  const thinkingId = appendThinking();
 
   const userId = (user && (user.email || user.name)) ? (user.email || user.name) : 'guest';
   if (!sessionId) sessionId = 'session_' + Date.now();
@@ -583,9 +536,22 @@ async function sendMessage() {
       })
     });
 
-    // Remove spinner
-    const spinner = document.getElementById(bubbleId + '_spin');
-    if (spinner) spinner.remove();
+    removeThinking(thinkingId);
+
+    const bubbleId = 'ai_bubble_' + Date.now();
+    const area = document.getElementById('messagesArea');
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex;justify-content:flex-start;';
+    wrapper.innerHTML = `<div class="self-start w-full max-w-[95%] glass-panel rounded-2xl rounded-tl-sm p-5 border border-surface-tint/30 flex flex-col gap-4">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+        <span class="material-symbols-outlined" style="font-size:16px;color:#b4c5ff;font-variation-settings:'FILL' 1;">psychology</span>
+        <span style="font-size:11px;color:#b4c5ff;letter-spacing:0.05em;text-transform:uppercase;font-weight:600;">Neural Engine</span>
+      </div>
+      <div id="${bubbleId}" style="white-space:pre-wrap;word-break:break-word;min-height:20px;"></div>
+    </div>`;
+    area.appendChild(wrapper);
+    area.scrollTop = area.scrollHeight;
+
 
     if (!resp.ok) {
       let errDetail = `${resp.status} ${resp.statusText}`;
@@ -624,8 +590,7 @@ async function sendMessage() {
     area.scrollTop = area.scrollHeight;
 
   } catch(e) {
-    const spinner = document.getElementById(bubbleId + '_spin');
-    if (spinner) spinner.remove();
+    removeThinking(thinkingId);
     const b = document.getElementById(bubbleId);
     if (b) b.innerHTML = `<span style="color:#ffb4ab;">⚠️ Cannot reach backend.<br/><code style="font-size:12px;color:#8d90a0;">${escHtml(e.message)}</code></span>`;
   }
@@ -703,8 +668,10 @@ function removeThinking(id) {
 }
 
 function updateTurnCount() {
-  document.getElementById('turnCount').textContent = `${turnCount} turn${turnCount !== 1 ? 's' : ''}`;
-  document.getElementById('footerTurns').textContent = `Session: ${turnCount} turn${turnCount !== 1 ? 's' : ''}`;
+  const tc = document.getElementById('turnCount');
+  if (tc) tc.textContent = `${turnCount} turn${turnCount !== 1 ? 's' : ''}`;
+  const ft = document.getElementById('footerTurns');
+  if (ft) ft.textContent = `Session: ${turnCount} turn${turnCount !== 1 ? 's' : ''}`;
 }
 
 // ── New Session ────────────────────────────────────────────────────────────
@@ -713,7 +680,7 @@ function newSession() {
   turnCount = 0;
   chatMessages = [];
   updateTurnCount();
-  document.getElementById('chatTitle').textContent = 'Neural Engine';
+  // Removed chatTitle overwrite to keep HJAI permanent
   const area = document.getElementById('messagesArea');
   area.innerHTML = `<div id="welcomeState" class="flex flex-col items-center justify-center h-full text-center gap-6">
     <div class="w-16 h-16 rounded-full bg-surface-tint/10 border border-surface-tint/30 flex items-center justify-center">
