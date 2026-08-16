@@ -8,10 +8,9 @@ def execute_reviewer_agent(task_data: str):
     Reviewer Agent: Verifies code or tasks for correctness and completeness.
     """
     system_prompt = "You are the Reviewer Agent. Your job is to review the provided output against the original requirements and point out any bugs, security issues, or missing features. If it looks good, approve it."
-    
-    loop = asyncio.get_event_loop()
+
     try:
-        response = loop.run_until_complete(LLMService.generate_response(
+        response = asyncio.run(LLMService.generate_response(
             prompt=task_data,
             system=system_prompt
         ))

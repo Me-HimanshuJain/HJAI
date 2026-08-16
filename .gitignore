@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+build_log.txt
+backend/celerybeat-schedule
+hjai_analysis.md

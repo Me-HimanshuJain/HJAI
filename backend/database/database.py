@@ -16,3 +16,8 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def init_db():
+    """Import all models so they are registered with Base, then create all tables."""
+    from models import user  # noqa: F401 — must import to register with Base
+    Base.metadata.create_all(bind=engine)

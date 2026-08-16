@@ -5,11 +5,14 @@ WORKDIR /app
 # Copy package management files
 COPY package.json package-lock.json* ./
 
-# Install dependencies
+# Install all dependencies inside the image
 RUN npm install
 
-# Copy all files
+# Copy all source files
 COPY . .
 
-# Start the Next.js development server
-CMD ["npm", "run", "dev"]
+# Build the Next.js production bundle
+RUN npm run build
+
+# Start the stable Next.js production server (no Turbopack, no hot-reload issues)
+CMD ["npm", "start"]

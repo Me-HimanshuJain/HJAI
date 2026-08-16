@@ -8,10 +8,9 @@ def execute_researcher_agent(topic: str):
     Researcher Agent: Gathers information and answers specific questions.
     """
     system_prompt = "You are the Researcher Agent. Your job is to gather and summarize factual information about the provided topic."
-    
-    loop = asyncio.get_event_loop()
+
     try:
-        response = loop.run_until_complete(LLMService.generate_response(
+        response = asyncio.run(LLMService.generate_response(
             prompt=topic,
             system=system_prompt
         ))

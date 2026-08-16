@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
-from api import chat, memory, documents, vision, voice, agents
+from api import chat, memory, agents, auth
+from database.database import init_db
 
 app = FastAPI(
     title="HJAI API",
@@ -9,10 +10,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS Middleware setup
+# CORS Middleware setup — restricted to the frontend origin
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -20,10 +21,13 @@ app.add_middleware(
 
 app.include_router(chat.router, prefix="/api")
 app.include_router(memory.router, prefix="/api")
-app.include_router(documents.router, prefix="/api/documents")
-app.include_router(vision.router, prefix="/api/vision")
-app.include_router(voice.router, prefix="/api/voice")
 app.include_router(agents.router, prefix="/api/agents")
+app.include_router(auth.router, prefix="/api")
+
+@app.on_event("startup")
+def on_startup():
+    """Create all database tables on startup if they don't exist."""
+    init_db()
 
 @app.get("/")
 def read_root():

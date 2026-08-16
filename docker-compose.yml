@@ -10,10 +10,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=development
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - NODE_ENV=production
     depends_on:
       - backend
     restart: unless-stopped
@@ -46,13 +43,13 @@ services:
 
   # -------------------------
   # Celery Worker Service (With Xvfb and PulseAudio for the Bot)
+  # Uses unified celery_app from worker.py — includes agent + bot tasks
   # -------------------------
   celery_worker:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    command: >
-      bash -c "pulseaudio -D --exit-idle-time=-1 && xvfb-run -a celery -A bot.scheduler.celery_app worker --loglevel=info"
+    command: celery -A worker.celery_app worker --loglevel=info
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/hjai
       - REDIS_URL=redis://redis:6379/0
@@ -60,6 +57,12 @@ services:
       - CHROMADB_HOST=chromadb
       - CHROMADB_PORT=8000
       - OLLAMA_HOST=http://host.docker.internal:11434
+      # Email recap settings (fill in your credentials below)
+      - SMTP_SERVER=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USER=
+      - SMTP_PASS=
+      - RECAP_EMAIL_RECIPIENTS=
     volumes:
       - ./backend:/app
     depends_on:
@@ -70,12 +73,13 @@ services:
 
   # -------------------------
   # Celery Beat Service (Scheduler)
+  # Uses unified celery_app from worker.py
   # -------------------------
   celery_beat:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    command: celery -A bot.scheduler.celery_app beat --loglevel=info
+    command: celery -A worker.celery_app beat --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379/0
       - REDIS_HOST=redis

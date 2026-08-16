@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HJAI — Create Neural Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "surface": "#0c1324", "surface-container-lowest": "#070d1f",
+        "surface-container-low": "#151b2d", "surface-container": "#191f31",
+        "surface-container-high": "#23293c", "primary-container": "#2563eb",
+        "on-surface": "#dce1fb", "on-surface-variant": "#c3c6d7",
+        "outline-variant": "#434655", "outline": "#8d90a0", "primary": "#b4c5ff",
+        "on-primary-container": "#eeefff", "error": "#ffb4ab",
+        "background": "#0c1324"
+      }
+    }
+  }
+}
+</script>
+<style>
+  body { font-family: 'Geist', sans-serif; }
+  .glow-pulse { animation: glowPulse 2s infinite alternate; }
+  @keyframes glowPulse {
+    0% { box-shadow: 0 0 5px rgba(37,99,235,0.2), 0 0 10px rgba(37,99,235,0.1); }
+    100% { box-shadow: 0 0 15px rgba(37,99,235,0.6), 0 0 30px rgba(37,99,235,0.3); }
+  }
+  .text-glow { text-shadow: 0 0 10px rgba(180,197,255,0.5); }
+  .glass-card {
+    background: linear-gradient(180deg, rgba(12,19,36,0.75) 0%, rgba(12,19,36,0.92) 100%);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    border-left: 1px solid rgba(255,255,255,0.05);
+    border-right: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(0,0,0,0.5);
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .input-wrap {
+    display: flex; align-items: center; position: relative;
+    background: #151b2d; border: 1px solid #434655;
+    border-radius: 8px; transition: all 0.3s;
+  }
+  .input-wrap:focus-within {
+    box-shadow: 0 0 0 1px #2563eb, 0 0 10px rgba(37,99,235,0.3);
+    border-color: #2563eb;
+  }
+  .input-wrap .icon {
+    position: absolute; left: 16px;
+    font-family: 'Material Symbols Outlined'; font-size: 20px;
+    color: #c3c6d7; user-select: none;
+  }
+  .input-wrap input {
+    width: 100%; background: transparent; border: none; outline: none;
+    color: #dce1fb; padding: 12px 16px 12px 48px;
+    font-size: 16px; border-radius: 8px;
+  }
+  .input-wrap input::placeholder { color: rgba(195,198,215,0.5); }
+  .error-msg {
+    display: none; color: #ffb4ab; font-size: 13px; margin-top: 4px;
+    padding: 8px 12px; background: rgba(147,0,10,0.2);
+    border: 1px solid rgba(255,180,171,0.3); border-radius: 6px;
+  }
+  .success-msg {
+    display: none; color: #6ee7b7; font-size: 13px; margin-top: 4px;
+    padding: 8px 12px; background: rgba(6,78,59,0.3);
+    border: 1px solid rgba(110,231,183,0.3); border-radius: 6px;
+  }
+  .strength-bar { height: 4px; border-radius: 2px; transition: all 0.3s; background: #434655; flex: 1; }
+  .strength-bar.weak { background: #ef4444; }
+  .strength-bar.medium { background: #f59e0b; }
+  .strength-bar.strong { background: #22c55e; }
+  .btn-loading { opacity: 0.7; pointer-events: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .animate-spin { animation: spin 1s linear infinite; }
+</style>
+</head>
+<body class="bg-[#070d1f] text-[#dce1fb] min-h-screen flex flex-col relative overflow-hidden">
+
+<!-- 3D Background (same neural network) -->
+<div style="position:absolute;inset:0;z-index:0;pointer-events:none;">
+  <div style="position:absolute;inset:0;width:100%;height:100%;opacity:0.5;">
+    <script src="https://ajax.googleapis.com/ajax/libs/threejs/r125/three.min.js"></script>
+    <div id="bg3d" style="width:100%;height:100%;"></div>
+    <script>
+    (function(){
+      const c = document.getElementById('bg3d');
+      const w = window.innerWidth, h = window.innerHeight;
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, w/h, 0.1, 1000);
+      camera.position.z = 100;
+      const renderer = new THREE.WebGLRenderer({alpha:true,antialias:true});
+      renderer.setSize(w,h); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+      c.appendChild(renderer.domElement);
+      const geo = new THREE.SphereGeometry(0.8,16,16);
+      const mat = new THREE.MeshPhongMaterial({color:0x2563eb,emissive:0x2563eb,emissiveIntensity:2,transparent:true,opacity:0.9});
+      const neurons=[]; const grp=new THREE.Group();
+      for(let i=0;i<35;i++){
+        const m=new THREE.Mesh(geo,mat.clone());
+        m.position.set((Math.random()-.5)*160,(Math.random()-.5)*110,(Math.random()-.5)*100);
+        m.userData.op=m.position.clone(); m.userData.po=Math.random()*Math.PI*2;
+        grp.add(m); neurons.push(m);
+      }
+      const lm=new THREE.LineBasicMaterial({color:0x2563eb,transparent:true,opacity:0.12});
+      const lines=[]; const maxD=45;
+      const upd=()=>{
+        lines.forEach(l=>grp.remove(l)); lines.length=0;
+        for(let i=0;i<neurons.length;i++) for(let j=i+1;j<neurons.length;j++){
+          if(neurons[i].position.distanceTo(neurons[j].position)<maxD){
+            const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints([neurons[i].position,neurons[j].position]),lm);
+            grp.add(l); lines.push(l);
+          }
+        }
+      };
+      scene.add(grp);
+      scene.add(new THREE.AmbientLight(0xffffff,0.2));
+      const pl=new THREE.PointLight(0x2563eb,1.5,300);
+      pl.position.set(50,50,50); scene.add(pl);
+      const anim=()=>{
+        requestAnimationFrame(anim); const t=Date.now()*.001;
+        neurons.forEach(n=>{
+          n.position.y=n.userData.op.y+Math.sin(t+n.userData.po)*5;
+          n.position.x=n.userData.op.x+Math.cos(t+n.userData.po)*3;
+          const p=(Math.sin(t*2+n.userData.po)+1)/2;
+          n.material.emissiveIntensity=1+p*3; n.scale.setScalar(1+p*.2);
+        });
+        upd(); grp.rotation.y+=.001; grp.rotation.x+=.0005;
+        renderer.render(scene,camera);
+      };
+      anim();
+      window.addEventListener('resize',()=>{
+        renderer.setSize(window.innerWidth,window.innerHeight);
+        camera.aspect=window.innerWidth/window.innerHeight;
+        camera.updateProjectionMatrix();
+      });
+    })();
+    </script>
+  </div>
+  <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,13,31,0.8),transparent,rgba(7,13,31,1));pointer-events:none;"></div>
+</div>
+
+<!-- Main -->
+<main style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;z-index:10;">
+  <div class="glass-card" style="width:100%;max-width:460px;border-radius:16px;padding:36px;display:flex;flex-direction:column;gap:24px;">
+
+    <!-- Header -->
+    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;">
+      <div style="width:64px;height:64px;border-radius:50%;background:#191f31;border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(37,99,235,0.3);margin-bottom:8px;">
+        <span style="font-family:'Material Symbols Outlined';font-size:36px;color:#b4c5ff;font-variation-settings:'FILL' 1;">person_add</span>
+      </div>
+      <h1 class="text-glow" style="font-size:26px;font-weight:700;letter-spacing:-0.02em;color:#dce1fb;">Create Neural Profile</h1>
+      <p style="font-size:15px;color:#c3c6d7;">Join the HJAI intelligence network</p>
+    </div>
+
+    <!-- Signup Form -->
+    <form id="signupForm" onsubmit="handleSignup(event)" style="display:flex;flex-direction:column;gap:14px;">
+
+      <!-- Full Name -->
+      <div class="input-wrap">
+        <span class="icon">person</span>
+        <input id="nameInput" type="text" placeholder="Full Name" required autocomplete="name"/>
+      </div>
+
+      <!-- Email -->
+      <div class="input-wrap">
+        <span class="icon">hub</span>
+        <input id="emailInput" type="email" placeholder="Email" required autocomplete="email"/>
+      </div>
+
+      <!-- Password -->
+      <div>
+        <div class="input-wrap">
+          <span class="icon">key</span>
+          <input id="passwordInput" type="password" placeholder="Create Password" required autocomplete="new-password" oninput="checkStrength(this.value)"/>
+          <button type="button" onclick="togglePw('passwordInput','eye1')" style="position:absolute;right:16px;background:none;border:none;cursor:pointer;color:#c3c6d7;">
+            <span id="eye1" style="font-family:'Material Symbols Outlined';font-size:20px;">visibility</span>
+          </button>
+        </div>
+        <!-- Strength bars -->
+        <div style="display:flex;gap:4px;margin-top:6px;" id="strengthBars">
+          <div class="strength-bar" id="sb1"></div>
+          <div class="strength-bar" id="sb2"></div>
+          <div class="strength-bar" id="sb3"></div>
+          <div class="strength-bar" id="sb4"></div>
+        </div>
+        <p id="strengthLabel" style="font-size:11px;color:#8d90a0;margin-top:3px;height:14px;"></p>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="input-wrap">
+        <span class="icon">lock</span>
+        <input id="confirmInput" type="password" placeholder="Confirm Password" required autocomplete="new-password"/>
+        <button type="button" onclick="togglePw('confirmInput','eye2')" style="position:absolute;right:16px;background:none;border:none;cursor:pointer;color:#c3c6d7;">
+          <span id="eye2" style="font-family:'Material Symbols Outlined';font-size:20px;">visibility</span>
+        </button>
+      </div>
+
+      <div id="errorMsg" class="error-msg"></div>
+      <div id="successMsg" class="success-msg"></div>
+
+      <!-- Terms -->
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#c3c6d7;">
+        <input id="termsCheck" type="checkbox" required style="width:16px;height:16px;border:1px solid #434655;border-radius:3px;background:#151b2d;accent-color:#2563eb;"/>
+        I agree to the <a href="#" style="color:#b4c5ff;text-decoration:underline;">Terms of Service</a> and <a href="#" style="color:#b4c5ff;text-decoration:underline;">Privacy Policy</a>
+      </label>
+
+      <!-- Submit Button -->
+      <button id="signupBtn" type="submit" class="glow-pulse" style="width:100%;background:#2563eb;color:white;padding:13px;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:0.05em;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;transition:opacity 0.2s;">
+        <span id="btnText">Activate Neural Profile</span>
+        <span id="btnIcon" style="font-family:'Material Symbols Outlined';font-size:18px;">rocket_launch</span>
+        <span id="btnSpinner" style="display:none;font-family:'Material Symbols Outlined';font-size:18px;" class="animate-spin">autorenew</span>
+      </button>
+    </form>
+
+    <!-- Footer -->
+    <div style="display:flex;justify-content:center;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05);">
+      <a href="/login" style="font-size:13px;color:#b4c5ff;text-decoration:none;" onmouseover="this.style.color='#dce1fb'" onmouseout="this.style.color='#b4c5ff'">
+        Already have an account? Sign in →
+      </a>
+    </div>
+  </div>
+</main>
+
+<!-- Status Bar -->
+<div style="position:fixed;bottom:0;left:0;width:100%;z-index:50;display:flex;justify-content:center;align-items:center;height:48px;backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.05);background:rgba(12,19,36,0.3);">
+  <div style="display:flex;align-items:center;gap:24px;font-size:13px;color:rgba(195,198,215,0.7);">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#34d399;animation:pulse 2s infinite;"></div>
+      <span>Neural Core: Online</span>
+    </div>
+    <div style="width:1px;height:16px;background:rgba(67,70,85,0.3);"></div>
+    <span>🔒 256-bit encrypted registration</span>
+  </div>
+</div>
+
+<script>
+function togglePw(inputId, iconId) {
+  const inp = document.getElementById(inputId);
+  const ico = document.getElementById(iconId);
+  if (inp.type === 'password') { inp.type='text'; ico.textContent='visibility_off'; }
+  else { inp.type='password'; ico.textContent='visibility'; }
+}
+
+function checkStrength(pw) {
+  const bars = [document.getElementById('sb1'),document.getElementById('sb2'),document.getElementById('sb3'),document.getElementById('sb4')];
+  const label = document.getElementById('strengthLabel');
+  bars.forEach(b => { b.className='strength-bar'; });
+  if (!pw) { label.textContent=''; return; }
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const cls = score <= 1 ? 'weak' : score <= 2 ? 'medium' : score <= 3 ? 'medium' : 'strong';
+  const labels = ['','Weak','Fair','Good','Strong'];
+  for (let i=0;i<score;i++) bars[i].classList.add(cls);
+  label.textContent = labels[score] || '';
+  label.style.color = cls==='weak'?'#ef4444':cls==='medium'?'#f59e0b':'#22c55e';
+}
+
+async function handleSignup(e) {
+  e.preventDefault();
+  const name = document.getElementById('nameInput').value.trim();
+  const email = document.getElementById('emailInput').value.trim();
+  const password = document.getElementById('passwordInput').value;
+  const confirm = document.getElementById('confirmInput').value;
+  const errorMsg = document.getElementById('errorMsg');
+  const successMsg = document.getElementById('successMsg');
+  const btn = document.getElementById('signupBtn');
+
+  errorMsg.style.display = 'none';
+  successMsg.style.display = 'none';
+
+  if (password !== confirm) {
+    errorMsg.textContent = 'Passwords do not match. Please re-enter.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+  if (password.length < 8) {
+    errorMsg.textContent = 'Password must be at least 8 characters.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  // Loading state
+  btn.classList.add('btn-loading');
+  document.getElementById('btnText').textContent = 'Activating...';
+  document.getElementById('btnIcon').style.display = 'none';
+  document.getElementById('btnSpinner').style.display = 'inline';
+
+  try {
+    const resp = await fetch('http://localhost:8000/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password })
+    });
+    const data = await resp.json();
+
+    if (resp.ok) {
+      // Auto-login after successful registration
+      if (data.access_token) {
+        localStorage.setItem('hjai_token', data.access_token);
+        localStorage.setItem('hjai_user', JSON.stringify(data.user || { name, email }));
+        successMsg.textContent = '✓ Neural profile activated! Redirecting to your workspace...';
+        successMsg.style.display = 'block';
+        setTimeout(() => { window.top.location.href = '/dashboard'; }, 1500);
+      } else {
+        successMsg.textContent = '✓ Account created! Please sign in.';
+        successMsg.style.display = 'block';
+        setTimeout(() => { window.top.location.href = '/login'; }, 2000);
+      }
+    } else {
+      throw new Error(data.detail || data.message || 'Registration failed. Please try again.');
+    }
+  } catch (err) {
+    errorMsg.textContent = err.message;
+    errorMsg.style.display = 'block';
+    btn.classList.remove('btn-loading');
+    document.getElementById('btnText').textContent = 'Activate Neural Profile';
+    document.getElementById('btnIcon').style.display = 'inline';
+    document.getElementById('btnSpinner').style.display = 'none';
+  }
+}
+
+// Allow "Sign in" link to navigate parent properly
+document.querySelector('a[href="/login"]').addEventListener('click', e => {
+  e.preventDefault();
+  window.top.location.href = '/login';
+});
+</script>
+</body></html>
